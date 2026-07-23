@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오늘 뭐 먹지 — 식단 투두</title>
+<meta name="description" content="키, 몸무게, 인바디 수치로 내게 맞는 하루 섭취 칼로리와 탄단지를 계산하고, 날짜별로 식단을 기록·계획하며, 남은 매크로에 맞는 메뉴를 추천받는 식단 관리 도구입니다.">
+<style>
+  :root{
+    --bg:#F6F4EE;
+    --card:#FFFFFF;
+    --ink:#232420;
+    --ink-soft:#6B6E66;
+    --line:#E4E1D6;
+    --forest:#2F4B3C;
+    --forest-soft:#DCE6DE;
+    --citrus:#E8A33D;
+    --citrus-soft:#FBEBD2;
+    --berry:#B5473D;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:24px 16px 60px;}
+  .wrap{max-width:480px;margin:0 auto;}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:-0.3px;}
+  .sub{color:var(--ink-soft);font-size:13px;margin:0 0 20px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+  .card h2{font-size:14px;font-weight:700;margin:0 0 12px;color:var(--forest);}
+  .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;}
+  .tabs button{flex:1 1 auto;min-width:90px;padding:9px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .tabs button.active{background:var(--forest);color:#fff;border-color:var(--forest);}
+  .hidden{display:none;}
+
+  .date-nav{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+  .date-nav button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:16px;cursor:pointer;flex-shrink:0;}
+  .date-label{flex:1;text-align:center;font-weight:700;font-size:15px;}
+  .date-label .day-tag{display:block;font-size:11px;font-weight:600;margin-top:2px;}
+  .day-tag.past{color:var(--ink-soft);}
+  .day-tag.today{color:var(--forest);}
+  .day-tag.future{color:var(--citrus);}
+  .jump-today{font-size:12px;color:var(--forest);text-decoration:underline;text-align:center;cursor:pointer;margin-bottom:2px;}
+
+  .macro-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  .macro-box{background:#FAF9F5;border-radius:10px;padding:10px 6px;text-align:center;}
+  .macro-box .label{font-size:11px;color:var(--ink-soft);margin-bottom:4px;}
+  .macro-box .val{font-size:14px;font-weight:700;}
+  .bar-track{height:6px;background:var(--line);border-radius:4px;margin-top:6px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:4px;transition:width .3s;}
+  .bar-fill.kcal{background:var(--forest);}
+  .bar-fill.carb{background:var(--citrus);}
+  .bar-fill.protein{background:var(--berry);}
+  .bar-fill.fat{background:#8B8F86;}
+  .hint{font-size:11px;color:var(--ink-soft);margin-top:8px;}
+
+  .log-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  .log-item:last-child{border-bottom:none;}
+  .log-item.planned{opacity:0.6;}
+  .log-item input[type=checkbox]{width:18px;height:18px;flex-shrink:0;accent-color:var(--forest);cursor:pointer;}
+  .log-item .info{flex:1;}
+  .log-item .meta{color:var(--ink-soft);font-size:11px;}
+  .log-item .status{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;}
+  .status.eaten{background:var(--forest-soft);color:var(--forest);}
+  .status.planned{background:var(--citrus-soft);color:#8A5A0E;}
+  .log-item button.del{border:none;background:none;color:var(--berry);font-size:12px;cursor:pointer;padding:4px 2px;}
+
+  input[type=text],input[type=number]{width:100%;padding:9px 10px;border:1.5px solid var(--line);border-radius:9px;font-size:13px;background:#fff;color:var(--ink);}
+  .search-results{max-height:220px;overflow-y:auto;margin-top:10px;}
+  .food-row{display:flex;justify-content:space-between;align-items:center;padding:8px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .food-row:hover{background:#FAF9F5;}
+  .food-row .name{font-size:13px;font-weight:600;}
+  .food-row .tags{font-size:10px;color:var(--ink-soft);margin-top:2px;}
+  .food-row .kcal{font-size:12px;color:var(--forest);font-weight:700;white-space:nowrap;padding-left:8px;}
+  .cat-chip{padding:6px 10px;border-radius:20px;border:1.5px solid var(--line);background:#fff;font-size:11.5px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  .cat-chip.active{border-color:var(--forest);background:var(--forest-soft);color:var(--forest);}
+  .tag-pill{display:inline-block;background:var(--citrus-soft);color:#8A5A0E;font-size:10px;padding:1px 6px;border-radius:20px;margin-right:4px;}
+  .empty{color:var(--ink-soft);font-size:12px;text-align:center;padding:16px 0;}
+
+  .rec-card{border:1.5px solid var(--forest);background:var(--forest-soft);border-radius:12px;padding:12px 14px;margin-bottom:10px;}
+  .rec-card .name{font-weight:700;font-size:14px;color:var(--forest);}
+  .rec-card .desc{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+  .rec-card button{margin-top:8px;padding:6px 12px;border-radius:8px;border:none;background:var(--forest);color:#fff;font-size:12px;font-weight:600;cursor:pointer;}
+
+  .row{display:flex;gap:8px;flex-wrap:wrap;}
+  .info-item{border-bottom:1px solid var(--line);padding:12px 2px;}
+  .info-item:last-child{border-bottom:none;}
+  .info-item .q{font-weight:700;font-size:13px;color:var(--forest);margin-bottom:4px;}
+  .info-item .a{font-size:12.5px;color:var(--ink-soft);line-height:1.6;}
+  .info-item .a b{color:var(--ink);}
+  button.opt{flex:1 1 auto;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
+  button.opt.active{border-color:var(--forest);background:var(--forest-soft);color:var(--forest);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>오늘 뭐 먹지</h1>
+  <p class="sub">어제, 오늘, 내일 계획까지 — 남은 매크로 기반 추천</p>
+
+  <div class="tabs">
+    <button id="tabDash" class="active" onclick="switchTab('dash')">투두</button>
+    <button id="tabCalc" onclick="switchTab('calc')">적정 섭취량 계산기</button>
+    <button id="tabInfo" onclick="switchTab('info')">건강 정보</button>
+    <button id="tabGoal" onclick="switchTab('goal')">목표 설정</button>
+    <button id="tabAbout" onclick="switchTab('about')">소개</button>
+    <button id="tabPolicy" onclick="switchTab('policy')">이용안내</button>
+  </div>
+
+  <div id="aboutPanel" class="hidden">
+    <div class="card">
+      <h2>오늘 뭐 먹지, 어떻게 만들었나요</h2>
+      <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.7;">
+        이 사이트는 헬스·다이어트를 하는 사람이 매번 "오늘 뭘 먹어야 하지"를 고민하지 않도록 만든 개인 식단 관리 도구예요.
+        단순히 먹은 걸 기록하는 데서 그치지 않고, 키·몸무게·인바디 수치를 넣으면 Mifflin-St Jeor·Katch-McArdle 같은
+        검증된 공식으로 하루 적정 섭취량을 계산해주고, 오늘 남은 매크로에 맞는 메뉴를 자동으로 추천해줍니다.
+        날짜를 넘겨가며 어제 기록도 보고 내일 식단도 미리 계획할 수 있어요.
+      </p>
+      <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.7;margin-top:10px;">
+        모든 계산 로직과 영양 정보는 실제 논문과 공식 가이드라인(ISSN 스포츠영양학회, 한국인 영양소 섭취기준 등)을
+        참고해서 만들었고, 계속 데이터와 기능을 추가해나가고 있습니다.
+      </p>
+    </div>
+  </div>
+
+  <div id="policyPanel" class="hidden">
+    <div class="card">
+      <h2>개인정보처리방침</h2>
+      <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.7;">
+        이 사이트는 별도의 회원가입이나 서버 전송 없이, 입력하신 키·몸무게·식단 기록을 <b>사용하시는 기기의 브라우저 안에만</b> 저장합니다.
+        저희(사이트 운영자)를 포함해 어떤 제3자도 이 정보를 서버로 전송받거나 열람할 수 없습니다.
+        브라우저 저장 데이터를 지우거나 다른 기기·다른 브라우저로 접속하면 이전 기록은 보이지 않습니다.
+      </p>
+      <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.7;margin-top:10px;">
+        이 사이트는 이용 경험 개선 및 광고 게재를 위해 Google 애드센스 등 제3자 서비스의 쿠키를 사용할 수 있습니다.
+        Google을 비롯한 제3자 공급업체는 쿠키를 사용하여 사용자의 관심분야를 토대로 광고를 게재합니다.
+      </p>
+    </div>
+    <div class="card">
+      <h2>이용 안내</h2>
+      <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.7;">
+        이 사이트가 제공하는 칼로리·매크로 계산은 일반적인 공식에 기반한 <b>추정치</b>이며, 의학적 진단이나 처방을 대체하지 않습니다.
+        기저질환이 있거나 임신 중이신 경우, 식단을 크게 바꾸기 전에 반드시 의료 전문가와 상담해주세요.
+      </p>
+    </div>
+  </div>
+
+  <div id="infoPanel" class="hidden">
+    <div class="card">
+      <h2>자주 헷갈리는 영양 상식</h2>
+      <div class="row" id="infoCategoryRow" style="margin-bottom:10px;"></div>
+      <div id="infoList"></div>
+    </div>
+  </div>
+
+  <div id="calcPanel" class="hidden">
+    <div class="card">
+      <h2>내 정보 입력</h2>
+      <div class="row" id="genderRow">
+        <button class="opt active" id="genderMale" onclick="setGender('male')">남성</button>
+        <button class="opt" id="genderFemale" onclick="setGender('female')">여성</button>
+      </div>
+      <div class="macro-grid" style="grid-template-columns:repeat(2,1fr);margin-top:12px;">
+        <div><div class="macro-box"><div class="label">키(cm)</div><input type="number" id="calcHeight" placeholder="170" style="text-align:center;padding:4px;"></div></div>
+        <div><div class="macro-box"><div class="label">몸무게(kg)</div><input type="number" id="calcWeight" placeholder="65" style="text-align:center;padding:4px;"></div></div>
+        <div><div class="macro-box"><div class="label">나이</div><input type="number" id="calcAge" placeholder="25" style="text-align:center;padding:4px;"></div></div>
+        <div><div class="macro-box"><div class="label">체지방률(%) - 인바디, 선택</div><input type="number" id="calcBodyFat" placeholder="모르면 비워두세요" style="text-align:center;padding:4px;"></div></div>
+        <div><div class="macro-box"><div class="label">골격근량(kg) - 인바디, 선택</div><input type="number" id="calcMuscleMass" placeholder="모르면 비워두세요" style="text-align:center;padding:4px;"></div></div>
+      </div>
+      <div class="hint">몸무게는 물 섭취/나트륨에 따라 하루에도 1~2kg 바뀔 수 있어요. 가능하면 아침 공복 체중을 3~7일 평균 내서 입력하면 더 정확해요.</div>
+
+      <h2 style="margin-top:16px;">활동량 (주당 운동 일수)</h2>
+      <input type="number" id="activityDays" min="0" max="7" step="1" placeholder="0~7 사이 숫자" value="4" oninput="onActivityInput()">
+      <div class="hint" id="activityHint"></div>
+
+      <h2 style="margin-top:16px;">목표</h2>
+      <div class="row" id="goalDirRow"></div>
+
+      <button class="opt active" style="margin-top:14px;background:var(--forest);color:#fff;border-color:var(--forest);" onclick="runCalc()">계산하기</button>
+    </div>
+
+    <div class="card hidden" id="calcResultCard">
+      <h2>계산 결과</h2>
+      <div class="hint" id="calcMethodNote" style="margin-top:0;"></div>
+      <div class="macro-grid" style="margin-top:10px;">
+        <div class="macro-box"><div class="label">기초대사량</div><div class="val" id="r-bmr">-</div></div>
+        <div class="macro-box"><div class="label">활동대사량</div><div class="val" id="r-tdee">-</div></div>
+        <div class="macro-box"><div class="label">목표 칼로리</div><div class="val" id="r-goalkcal">-</div></div>
+        <div class="macro-box"><div class="label">목표 단백질</div><div class="val" id="r-protein">-</div></div>
+      </div>
+      <button class="opt active" style="margin-top:14px;background:var(--forest);color:#fff;border-color:var(--forest);" onclick="applyCalcToGoal()">이 값으로 목표 설정하기</button>
+      <div class="hint">공식: 체지방률 입력 시 Katch-McArdle(제지방량 기준), 체지방률 없이 골격근량만 있으면 이를 통해 제지방량을 추정해 Katch-McArdle 적용, 둘 다 없으면 Mifflin-St Jeor 사용. 단백질은 체중당 1.6g(ISSN 권장 1.4~2.0g 범위) 기준.</div>
+    </div>
+  </div>
+
+  <div id="goalPanel" class="hidden">
+    <div class="card">
+      <h2>식단 타입 선택</h2>
+      <div class="row" id="dietTypeRow"></div>
+      <div class="macro-grid" style="margin-top:16px;">
+        <div><div class="macro-box"><div class="label">칼로리</div><input type="number" id="goalKcal" style="text-align:center;padding:4px;"></div></div>
+        <div><div class="macro-box"><div class="label">탄수(g)</div><input type="number" id="goalCarb" style="text-align:center;padding:4px;"></div></div>
+        <div><div class="macro-box"><div class="label">단백(g)</div><input type="number" id="goalProtein" style="text-align:center;padding:4px;"></div></div>
+        <div><div class="macro-box"><div class="label">지방(g)</div><input type="number" id="goalFat" style="text-align:center;padding:4px;"></div></div>
+      </div>
+      <button class="opt active" style="margin-top:14px;background:var(--forest);color:#fff;border-color:var(--forest);" onclick="saveGoal()">목표 저장</button>
+    </div>
+  </div>
+
+  <div id="dashPanel">
+    <div class="card">
+      <div class="jump-today" onclick="goToday()">오늘로 이동</div>
+      <div class="date-nav">
+        <button onclick="changeDate(-1)">‹</button>
+        <div class="date-label"><span id="dateText">-</span><span class="day-tag" id="dayTag"></span></div>
+        <button onclick="changeDate(1)">›</button>
+      </div>
+      <div class="macro-grid">
+        <div class="macro-box"><div class="label">칼로리</div><div class="val" id="d-kcal">0/0</div><div class="bar-track"><div class="bar-fill kcal" id="b-kcal" style="width:0%"></div></div></div>
+        <div class="macro-box"><div class="label">탄수</div><div class="val" id="d-carb">0/0</div><div class="bar-track"><div class="bar-fill carb" id="b-carb" style="width:0%"></div></div></div>
+        <div class="macro-box"><div class="label">단백</div><div class="val" id="d-protein">0/0</div><div class="bar-track"><div class="bar-fill protein" id="b-protein" style="width:0%"></div></div></div>
+        <div class="macro-box"><div class="label">지방</div><div class="val" id="d-fat">0/0</div><div class="bar-track"><div class="bar-fill fat" id="b-fat" style="width:0%"></div></div></div>
+      </div>
+      <div class="hint" id="calcHint"></div>
+    </div>
+
+    <div class="card" id="recCard">
+      <h2>오늘 추천 메뉴 (남은 매크로 기준)</h2>
+      <div id="recList"></div>
+    </div>
+
+    <div class="card">
+      <h2 id="listTitle">이 날의 식단 투두</h2>
+      <div id="logList"><div class="empty">아직 항목이 없어요.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>음식 검색해서 추가</h2>
+      <div class="row" id="categoryRow" style="margin-bottom:10px;"></div>
+      <input type="text" id="searchBox" placeholder="예: 닭가슴살, 계란, 고구마" oninput="renderSearch()">
+      <div class="search-results" id="searchResults"></div>
+      <div class="hint">오늘/미래에 추가하면 처음엔 "예정"으로 표시돼요. 체크하면 "먹음"으로 바뀝니다.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const appStorage = {
+  async get(key){
+    try{
+      if(window.storage && window.storage.get){
+        return await window.storage.get(key, false);
+      }
+    }catch(e){}
+    try{
+      const v = localStorage.getItem(key);
+      return v === null ? null : {key, value:v};
+    }catch(e){ return null; }
+  },
+  async set(key, value){
+    try{
+      if(window.storage && window.storage.set){
+        return await window.storage.set(key, value, false);
+      }
+    }catch(e){}
+    try{ localStorage.setItem(key, value); }catch(e){}
+  }
+};
+
+const FOODS = [
+  {name:"닭가슴살 100g", kcal:110, carb:0, protein:23, fat:1.5, tags:["고단백","저지방"], category:"고단백"},
+  {name:"닭다리살(껍질X) 100g", kcal:150, carb:0, protein:19, fat:8, tags:["고단백"], category:"고단백"},
+  {name:"계란 1개", kcal:78, carb:0.6, protein:6.3, fat:5.3, tags:["고단백"], category:"고단백"},
+  {name:"계란흰자 3개", kcal:51, carb:0.7, protein:11, fat:0.2, tags:["고단백","저지방"], category:"고단백"},
+  {name:"연어 100g", kcal:208, carb:0, protein:20, fat:13, tags:["고단백","오메가3"], category:"고단백"},
+  {name:"참치캔(물) 1캔", kcal:90, carb:0, protein:20, fat:1, tags:["고단백","간편식"], category:"고단백"},
+  {name:"소고기 안심 100g", kcal:180, carb:0, protein:22, fat:9, tags:["고단백"], category:"고단백"},
+  {name:"돼지고기 안심 100g", kcal:143, carb:0, protein:22, fat:5.5, tags:["고단백"], category:"고단백"},
+  {name:"새우 100g", kcal:99, carb:0.2, protein:24, fat:0.3, tags:["고단백","저지방"], category:"고단백"},
+  {name:"두부 150g", kcal:114, carb:3.6, protein:12, fat:6, tags:["고단백","식물성"], category:"고단백"},
+  {name:"단백질 쉐이크 1스쿱", kcal:120, carb:3, protein:24, fat:1.5, tags:["고단백","간편식"], category:"고단백"},
+  {name:"닭가슴살 소시지 1개", kcal:80, carb:2, protein:13, fat:2, tags:["고단백","간편식"], category:"고단백"},
+
+  {name:"현미밥 1공기", kcal:300, carb:65, protein:6, fat:2, tags:["탄수화물"], category:"탄수화물"},
+  {name:"흰쌀밥 1공기", kcal:300, carb:68, protein:5.5, fat:0.5, tags:["탄수화물"], category:"탄수화물"},
+  {name:"고구마 200g", kcal:258, carb:60, protein:3, fat:0.3, tags:["탄수화물"], category:"탄수화물"},
+  {name:"감자 1개(200g)", kcal:172, carb:39, protein:4, fat:0.2, tags:["탄수화물"], category:"탄수화물"},
+  {name:"오트밀 50g(건조)", kcal:190, carb:33, protein:6.5, fat:3.5, tags:["탄수화물","식이섬유"], category:"탄수화물"},
+  {name:"통밀빵 1장", kcal:80, carb:14, protein:3.5, fat:1, tags:["탄수화물"], category:"탄수화물"},
+  {name:"바게트빵 1조각", kcal:140, carb:27, protein:4.5, fat:1, tags:["탄수화물"], category:"탄수화물"},
+  {name:"현미 김밥 1줄", kcal:320, carb:55, protein:9, fat:7, tags:["탄수화물","간편식"], category:"탄수화물"},
+  {name:"우동면 1인분", kcal:270, carb:56, protein:8, fat:1, tags:["탄수화물"], category:"탄수화물"},
+  {name:"파스타면(건조) 100g", kcal:350, carb:70, protein:12, fat:1.5, tags:["탄수화물"], category:"탄수화물"},
+
+  {name:"삶은 브로콜리 100g", kcal:35, carb:7, protein:2.8, fat:0.4, tags:["저칼로리","식이섬유"], category:"채소"},
+  {name:"샐러드(드레싱X) 1접시", kcal:40, carb:7, protein:2, fat:0.5, tags:["저칼로리"], category:"채소"},
+  {name:"방울토마토 10개", kcal:30, carb:6.5, protein:1, fat:0.3, tags:["저칼로리"], category:"채소"},
+  {name:"오이 1개", kcal:15, carb:3.6, protein:0.7, fat:0.1, tags:["저칼로리"], category:"채소"},
+  {name:"당근 1개", kcal:25, carb:6, protein:0.6, fat:0.1, tags:["저칼로리"], category:"채소"},
+  {name:"양배추 100g", kcal:25, carb:5.8, protein:1.3, fat:0.1, tags:["저칼로리","식이섬유"], category:"채소"},
+  {name:"시금치나물 1접시", kcal:40, carb:4, protein:3, fat:1.5, tags:["저칼로리"], category:"채소"},
+
+  {name:"바나나 1개", kcal:105, carb:27, protein:1.3, fat:0.3, tags:["간편식"], category:"과일"},
+  {name:"사과 1개", kcal:95, carb:25, protein:0.5, fat:0.3, tags:["간편식"], category:"과일"},
+  {name:"블루베리 100g", kcal:57, carb:14, protein:0.7, fat:0.3, tags:["항산화"], category:"과일"},
+  {name:"딸기 10개", kcal:40, carb:9.5, protein:0.9, fat:0.4, tags:["저칼로리"], category:"과일"},
+  {name:"귤 1개", kcal:44, carb:11, protein:0.7, fat:0.1, tags:["저칼로리"], category:"과일"},
+  {name:"포도 100g", kcal:69, carb:18, protein:0.6, fat:0.2, tags:[], category:"과일"},
+
+  {name:"그릭요거트 100g", kcal:73, carb:4, protein:10, fat:1.9, tags:["고단백","간편식"], category:"유제품"},
+  {name:"저지방우유 200ml", kcal:90, carb:10, protein:7, fat:2, tags:["간편식"], category:"유제품"},
+  {name:"두유 200ml", kcal:100, carb:8, protein:7, fat:4, tags:["식물성"], category:"유제품"},
+  {name:"체다치즈 1장", kcal:70, carb:0.5, protein:4.5, fat:5.5, tags:[], category:"유제품"},
+  {name:"코티지치즈 100g", kcal:98, carb:3.4, protein:11, fat:4.3, tags:["고단백"], category:"유제품"},
+
+  {name:"아보카도 1/2개", kcal:120, carb:6, protein:1.5, fat:11, tags:["건강지방","키토"], category:"견과류/지방"},
+  {name:"아몬드 20g", kcal:116, carb:4, protein:4, fat:10, tags:["건강지방","키토"], category:"견과류/지방"},
+  {name:"땅콩버터 1스푼", kcal:95, carb:3, protein:4, fat:8, tags:["건강지방","키토"], category:"견과류/지방"},
+  {name:"호두 5알", kcal:130, carb:2.7, protein:3, fat:13, tags:["건강지방","오메가3"], category:"견과류/지방"},
+  {name:"올리브오일 1스푼", kcal:120, carb:0, protein:0, fat:14, tags:["건강지방"], category:"견과류/지방"},
+  {name:"버터커피 1잔", kcal:230, carb:0, protein:0.3, fat:25, tags:["키토","건강지방"], category:"견과류/지방"},
+
+  {name:"편의점 닭가슴살 도시락", kcal:420, carb:45, protein:35, fat:10, tags:["간편식","고단백"], category:"편의점/간편식"},
+  {name:"편의점 훈제 닭가슴살(100g)", kcal:110, carb:1, protein:23, fat:1.5, tags:["간편식","고단백","저지방"], category:"편의점/간편식"},
+  {name:"편의점 소이 닭가슴살(100g)", kcal:115, carb:3, protein:22, fat:1.5, tags:["간편식","고단백"], category:"편의점/간편식"},
+  {name:"편의점 매콤 닭가슴살(100g)", kcal:120, carb:3.5, protein:22, fat:2, tags:["간편식","고단백"], category:"편의점/간편식"},
+  {name:"편의점 닭가슴살 큐브(100g)", kcal:110, carb:1.5, protein:23, fat:1.5, tags:["간편식","고단백","저지방"], category:"편의점/간편식"},
+  {name:"편의점 닭가슴살 스틱 1개(30g)", kcal:35, carb:0.5, protein:7, fat:0.5, tags:["간편식","고단백"], category:"편의점/간편식"},
+  {name:"편의점 닭가슴살 소시지 1개", kcal:80, carb:2, protein:13, fat:2, tags:["간편식","고단백"], category:"편의점/간편식"},
+  {name:"편의점 삼각김밥 1개", kcal:180, carb:33, protein:4, fat:3, tags:["간편식"], category:"편의점/간편식"},
+  {name:"편의점 샐러드 도시락", kcal:250, carb:20, protein:15, fat:12, tags:["간편식"], category:"편의점/간편식"},
+  {name:"단백질바 1개", kcal:200, carb:20, protein:20, fat:6, tags:["고단백","간편식"], category:"편의점/간편식"},
+  {name:"컵라면 1개", kcal:400, carb:60, protein:8, fat:15, tags:["간편식"], category:"편의점/간편식"},
+  {name:"삶은 계란 2개 세트", kcal:156, carb:1.2, protein:12.6, fat:10.6, tags:["고단백","간편식"], category:"편의점/간편식"},
+
+  {name:"김치찌개 1인분", kcal:320, carb:15, protein:20, fat:20, tags:["한식"], category:"한식/외식"},
+  {name:"된장찌개 1인분", kcal:220, carb:14, protein:14, fat:12, tags:["한식"], category:"한식/외식"},
+  {name:"비빔밥 1인분", kcal:550, carb:85, protein:18, fat:15, tags:["한식"], category:"한식/외식"},
+  {name:"삼겹살 200g(구이)", kcal:660, carb:0, protein:36, fat:56, tags:["한식","고지방"], category:"한식/외식"},
+  {name:"백반 정식 1인분", kcal:650, carb:90, protein:25, fat:20, tags:["한식"], category:"한식/외식"},
+  {name:"치킨(후라이드) 3조각", kcal:600, carb:25, protein:35, fat:40, tags:["배달"], category:"한식/외식"},
+  {name:"떡볶이 1인분", kcal:480, carb:90, protein:8, fat:8, tags:["배달"], category:"한식/외식"},
+  {name:"짜장면 1그릇", kcal:700, carb:110, protein:18, fat:20, tags:["배달"], category:"한식/외식"},
+
+  {name:"아메리카노 1잔", kcal:10, carb:2, protein:0.3, fat:0, tags:["저칼로리"], category:"음료"},
+  {name:"라떼(우유) 1잔", kcal:150, carb:12, protein:8, fat:8, tags:[], category:"음료"},
+  {name:"제로콜라 1캔", kcal:0, carb:0, protein:0, fat:0, tags:["저칼로리"], category:"음료"},
+  {name:"이온음료 500ml", kcal:130, carb:32, protein:0, fat:0, tags:[], category:"음료"}
+];
+
+const DIET_PRESETS = {
+  "벌크업": {kcal:2800, carb:340, protein:180, fat:80},
+  "린벌크": {kcal:2400, carb:270, protein:170, fat:70},
+  "다이어트": {kcal:1600, carb:130, protein:130, fat:50},
+  "저탄고지": {kcal:1800, carb:40, protein:110, fat:140},
+  "IIFYM(직접입력)": {kcal:2000, carb:200, protein:140, fat:60}
+};
+
+let goal = {kcal:2000, carb:200, protein:140, fat:60, type:"IIFYM(직접입력)"};
+let currentDate = new Date();
+let currentLog = [];
+
+const goalKey = "goal";
+const fmtKey = d => "todo:" + d.toISOString().slice(0,10);
+const fmtDisplay = d => d.toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+const sameDay = (a,b) => a.toISOString().slice(0,10) === b.toISOString().slice(0,10);
+const isFutureDate = d => d > new Date() && !sameDay(d, new Date());
+const isTodayDate = d => sameDay(d, new Date());
+
+async function loadGoal(){
+  try{
+    const g = await appStorage.get(goalKey);
+    if(g && g.value) goal = JSON.parse(g.value);
+  }catch(e){}
+  buildDietTypeButtons();
+  fillGoalInputs();
+}
+
+function buildDietTypeButtons(){
+  const row = document.getElementById('dietTypeRow');
+  row.innerHTML = '';
+  Object.keys(DIET_PRESETS).forEach(type=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt' + (goal.type===type ? ' active':'');
+    btn.textContent = type;
+    btn.onclick = ()=>{
+      goal.type = type;
+      const p = DIET_PRESETS[type];
+      document.getElementById('goalKcal').value = p.kcal;
+      document.getElementById('goalCarb').value = p.carb;
+      document.getElementById('goalProtein').value = p.protein;
+      document.getElementById('goalFat').value = p.fat;
+      buildDietTypeButtons();
+    };
+    row.appendChild(btn);
+  });
+}
+
+function fillGoalInputs(){
+  document.getElementById('goalKcal').value = goal.kcal;
+  document.getElementById('goalCarb').value = goal.carb;
+  document.getElementById('goalProtein').value = goal.protein;
+  document.getElementById('goalFat').value = goal.fat;
+}
+
+async function saveGoal(){
+  goal.kcal = Number(document.getElementById('goalKcal').value) || 0;
+  goal.carb = Number(document.getElementById('goalCarb').value) || 0;
+  goal.protein = Number(document.getElementById('goalProtein').value) || 0;
+  goal.fat = Number(document.getElementById('goalFat').value) || 0;
+  try{ await appStorage.set(goalKey, JSON.stringify(goal)); }catch(e){}
+  switchTab('dash');
+  renderAll();
+}
+
+function switchTab(tab){
+  document.getElementById('tabDash').classList.toggle('active', tab==='dash');
+  document.getElementById('tabCalc').classList.toggle('active', tab==='calc');
+  document.getElementById('tabInfo').classList.toggle('active', tab==='info');
+  document.getElementById('tabGoal').classList.toggle('active', tab==='goal');
+  document.getElementById('tabAbout').classList.toggle('active', tab==='about');
+  document.getElementById('tabPolicy').classList.toggle('active', tab==='policy');
+  document.getElementById('dashPanel').classList.toggle('hidden', tab!=='dash');
+  document.getElementById('calcPanel').classList.toggle('hidden', tab!=='calc');
+  document.getElementById('infoPanel').classList.toggle('hidden', tab!=='info');
+  document.getElementById('goalPanel').classList.toggle('hidden', tab!=='goal');
+  document.getElementById('aboutPanel').classList.toggle('hidden', tab!=='about');
+  document.getElementById('policyPanel').classList.toggle('hidden', tab!=='policy');
+}
+
+const GOAL_DIRECTIONS = {
+  "감량": -0.20,
+  "유지": 0,
+  "증량": 0.15
+};
+let calcGender = 'male';
+let calcGoalDir = "유지";
+let lastCalcResult = null;
+
+function activityMultiplier(days){
+  const d = Math.max(0, Math.min(7, days));
+  return 1.2 + (d/7) * 0.7;
+}
+
+function onActivityInput(){
+  const days = Number(document.getElementById('activityDays').value) || 0;
+  const mult = activityMultiplier(days);
+  document.getElementById('activityHint').textContent = `주 ${days}일 운동 기준, 활동 계수 ${mult.toFixed(2)}배로 계산돼요.`;
+}
+
+function buildCalcOptionRows(){
+  const gRow = document.getElementById('goalDirRow');
+  gRow.innerHTML = '';
+  Object.keys(GOAL_DIRECTIONS).forEach(k=>{
+    const b = document.createElement('button');
+    b.className = 'opt' + (calcGoalDir===k ? ' active':'');
+    b.textContent = k;
+    b.onclick = ()=>{ calcGoalDir = k; buildCalcOptionRows(); };
+    gRow.appendChild(b);
+  });
+  onActivityInput();
+}
+
+function setGender(g){
+  calcGender = g;
+  document.getElementById('genderMale').classList.toggle('active', g==='male');
+  document.getElementById('genderFemale').classList.toggle('active', g==='female');
+}
+
+function runCalc(){
+  const height = Number(document.getElementById('calcHeight').value);
+  const weight = Number(document.getElementById('calcWeight').value);
+  const age = Number(document.getElementById('calcAge').value);
+  const bodyFat = document.getElementById('calcBodyFat').value;
+  const muscleMass = document.getElementById('calcMuscleMass').value;
+  const activityDays = Number(document.getElementById('activityDays').value) || 0;
+  if(!height || !weight || !age){
+    alert('키, 몸무게, 나이를 모두 입력해주세요.');
+    return;
+  }
+  let bmr, methodNote;
+  if(bodyFat && Number(bodyFat) > 0){
+    const lbm = weight * (1 - Number(bodyFat)/100);
+    bmr = 370 + 21.6 * lbm;
+    methodNote = `Katch-McArdle 공식 사용 (체지방률로 계산한 제지방량 ${lbm.toFixed(1)}kg 기준) — 근육량을 반영해 헬스인에게 더 정확해요.`;
+  } else if(muscleMass && Number(muscleMass) > 0){
+    const lbm = Number(muscleMass) / 0.53;
+    bmr = 370 + 21.6 * Math.min(lbm, weight);
+    methodNote = `Katch-McArdle 공식 사용 (골격근량 ${muscleMass}kg으로 추정한 제지방량 ${Math.min(lbm,weight).toFixed(1)}kg 기준) — 인바디 체지방률을 넣으면 더 정확해져요.`;
+  } else {
+    bmr = calcGender==='male'
+      ? (10*weight + 6.25*height - 5*age + 5)
+      : (10*weight + 6.25*height - 5*age - 161);
+    methodNote = 'Mifflin-St Jeor 공식 사용 (체지방률이나 골격근량을 입력하면 Katch-McArdle로 더 정밀하게 계산돼요.)';
+  }
+  const mult = activityMultiplier(activityDays);
+  const tdee = bmr * mult;
+  const goalKcal = Math.round(tdee * (1 + GOAL_DIRECTIONS[calcGoalDir]));
+  const proteinG = Math.round(weight * 1.6);
+  const proteinKcal = proteinG * 4;
+  const fatKcal = goalKcal * 0.25;
+  const fatG = Math.round(fatKcal / 9);
+  const carbKcal = goalKcal - proteinKcal - fatKcal;
+  const carbG = Math.max(0, Math.round(carbKcal / 4));
+
+  lastCalcResult = {kcal: goalKcal, carb: carbG, protein: proteinG, fat: fatG};
+
+  document.getElementById('r-bmr').textContent = Math.round(bmr) + ' kcal';
+  document.getElementById('r-tdee').textContent = Math.round(tdee) + ' kcal';
+  document.getElementById('r-goalkcal').textContent = goalKcal + ' kcal';
+  document.getElementById('r-protein').textContent = proteinG + ' g';
+  document.getElementById('calcMethodNote').textContent = methodNote;
+  document.getElementById('calcResultCard').classList.remove('hidden');
+}
+
+async function applyCalcToGoal(){
+  if(!lastCalcResult) return;
+  goal.kcal = lastCalcResult.kcal;
+  goal.carb = lastCalcResult.carb;
+  goal.protein = lastCalcResult.protein;
+  goal.fat = lastCalcResult.fat;
+  goal.type = "IIFYM(직접입력)";
+  try{ await appStorage.set(goalKey, JSON.stringify(goal)); }catch(e){}
+  fillGoalInputs();
+  buildDietTypeButtons();
+  switchTab('dash');
+  renderAll();
+}
+
+async function loadForDate(){
+  document.getElementById('dateText').textContent = fmtDisplay(currentDate);
+  const tag = document.getElementById('dayTag');
+  if(isTodayDate(currentDate)){ tag.textContent = '오늘'; tag.className = 'day-tag today'; }
+  else if(currentDate < new Date()){ tag.textContent = '지난 기록'; tag.className = 'day-tag past'; }
+  else { tag.textContent = '예정된 계획'; tag.className = 'day-tag future'; }
+
+  document.getElementById('listTitle').textContent = isTodayDate(currentDate) ? '오늘의 식단 투두' :
+    (currentDate < new Date() ? '이 날 먹은 기록' : '이 날 먹을 계획');
+
+  document.getElementById('recCard').classList.toggle('hidden', !isTodayDate(currentDate));
+
+  try{
+    const r = await appStorage.get(fmtKey(currentDate));
+    currentLog = (r && r.value) ? JSON.parse(r.value) : [];
+  }catch(e){ currentLog = []; }
+  renderAll();
+}
+
+async function saveLog(){
+  try{ await appStorage.set(fmtKey(currentDate), JSON.stringify(currentLog)); }catch(e){}
+}
+
+function changeDate(offset){
+  const d = new Date(currentDate);
+  d.setDate(d.getDate() + offset);
+  currentDate = d;
+  loadForDate();
+}
+function goToday(){ currentDate = new Date(); loadForDate(); }
+
+function consumedTotals(){
+  return currentLog.filter(f=>f.eaten).reduce((acc,f)=>{
+    acc.kcal+=f.kcal; acc.carb+=f.carb; acc.protein+=f.protein; acc.fat+=f.fat; return acc;
+  },{kcal:0,carb:0,protein:0,fat:0});
+}
+function plannedTotals(){
+  return currentLog.reduce((acc,f)=>{
+    acc.kcal+=f.kcal; acc.carb+=f.carb; acc.protein+=f.protein; acc.fat+=f.fat; return acc;
+  },{kcal:0,carb:0,protein:0,fat:0});
+}
+function pct(cur,target){ return target>0 ? Math.min(100, Math.round(cur/target*100)) : 0; }
+
+function renderDashboard(){
+  const useplan = isFutureDate(currentDate);
+  const totals = useplan ? plannedTotals() : consumedTotals();
+  document.getElementById('d-kcal').textContent = `${Math.round(totals.kcal)}/${goal.kcal}`;
+  document.getElementById('d-carb').textContent = `${Math.round(totals.carb)}/${goal.carb}g`;
+  document.getElementById('d-protein').textContent = `${Math.round(totals.protein)}/${goal.protein}g`;
+  document.getElementById('d-fat').textContent = `${Math.round(totals.fat)}/${goal.fat}g`;
+  document.getElementById('b-kcal').style.width = pct(totals.kcal, goal.kcal) + '%';
+  document.getElementById('b-carb').style.width = pct(totals.carb, goal.carb) + '%';
+  document.getElementById('b-protein').style.width = pct(totals.protein, goal.protein) + '%';
+  document.getElementById('b-fat').style.width = pct(totals.fat, goal.fat) + '%';
+  document.getElementById('calcHint').textContent = useplan ? '※ 계획된(먹을 예정) 항목 기준 합계예요.' : '※ 체크한(먹은) 항목만 합산돼요.';
+}
+
+function renderLog(){
+  const list = document.getElementById('logList');
+  if(currentLog.length===0){
+    list.innerHTML = '<div class="empty">아직 항목이 없어요.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  currentLog.forEach((f, idx)=>{
+    const row = document.createElement('div');
+    row.className = 'log-item' + (f.eaten ? '' : ' planned');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = !!f.eaten;
+    cb.onchange = ()=>{ currentLog[idx].eaten = cb.checked; saveLog(); renderAll(); };
+    row.appendChild(cb);
+    const info = document.createElement('div');
+    info.className = 'info';
+    info.innerHTML = `<div>${f.name}</div><div class="meta">${Math.round(f.kcal)}kcal · 탄${Math.round(f.carb)} 단${Math.round(f.protein)} 지${Math.round(f.fat)}</div>`;
+    row.appendChild(info);
+    const status = document.createElement('span');
+    status.className = 'status ' + (f.eaten ? 'eaten' : 'planned');
+    status.textContent = f.eaten ? '먹음' : '예정';
+    row.appendChild(status);
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = '삭제';
+    del.onclick = ()=>{ currentLog.splice(idx,1); saveLog(); renderAll(); };
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+}
+
+let activeCategory = null;
+const FOOD_CATEGORIES = [...new Set(FOODS.map(f=>f.category))];
+
+function buildCategoryChips(){
+  const row = document.getElementById('categoryRow');
+  row.innerHTML = '';
+  const allChip = document.createElement('button');
+  allChip.className = 'cat-chip' + (activeCategory===null ? ' active' : '');
+  allChip.textContent = '전체';
+  allChip.onclick = ()=>{ activeCategory = null; buildCategoryChips(); renderSearch(); };
+  row.appendChild(allChip);
+  FOOD_CATEGORIES.forEach(cat=>{
+    const chip = document.createElement('button');
+    chip.className = 'cat-chip' + (activeCategory===cat ? ' active' : '');
+    chip.textContent = cat;
+    chip.onclick = ()=>{ activeCategory = (activeCategory===cat ? null : cat); buildCategoryChips(); renderSearch(); };
+    row.appendChild(chip);
+  });
+}
+
+function renderSearch(){
+  const q = document.getElementById('searchBox').value.trim();
+  const box = document.getElementById('searchResults');
+  let pool = activeCategory ? FOODS.filter(f=>f.category===activeCategory) : FOODS;
+  if(q){ pool = pool.filter(f=>f.name.includes(q) || f.tags.some(t=>t.includes(q))); }
+  if(!q && !activeCategory){ box.innerHTML=''; return; }
+  if(pool.length===0){ box.innerHTML = '<div class="empty">일치하는 음식이 없어요.</div>'; return; }
+  box.innerHTML = '';
+  const defaultEaten = currentDate <= new Date();
+  pool.forEach(f=>{
+    const row = document.createElement('div');
+    row.className = 'food-row';
+    row.innerHTML = `<div><div class="name">${f.name}</div><div class="tags">${f.tags.map(t=>'<span class="tag-pill">'+t+'</span>').join('')}</div></div><div class="kcal">${f.kcal}kcal</div>`;
+    row.onclick = ()=>{
+      currentLog.push({...f, eaten: defaultEaten});
+      saveLog();
+      document.getElementById('searchBox').value='';
+      box.innerHTML='';
+      renderAll();
+    };
+    box.appendChild(row);
+  });
+}
+
+function renderRecommendations(){
+  const box = document.getElementById('recList');
+  if(!isTodayDate(currentDate)){ box.innerHTML=''; return; }
+  const c = consumedTotals();
+  const remain = { kcal: goal.kcal - c.kcal, carb: goal.carb - c.carb, protein: goal.protein - c.protein, fat: goal.fat - c.fat };
+
+  if(remain.kcal <= 30){
+    box.innerHTML = '<div class="empty">오늘 목표 칼로리를 거의 다 채웠어요. 잘하셨어요!</div>';
+    return;
+  }
+  const scored = FOODS.map(f=>{
+    const kcalFit = 1 - Math.min(1, Math.abs(f.kcal - remain.kcal*0.4) / (goal.kcal||1));
+    const proteinFit = remain.protein>0 ? Math.min(1, f.protein / remain.protein) : 0;
+    const fits = f.kcal <= remain.kcal + 50 && f.carb <= remain.carb + 15 && f.fat <= remain.fat + 10;
+    return {food:f, score: kcalFit*0.5 + proteinFit*0.5, fits};
+  }).filter(x=>x.fits).sort((a,b)=>b.score-a.score).slice(0,3);
+
+  if(scored.length===0){
+    box.innerHTML = '<div class="empty">남은 매크로에 딱 맞는 음식이 없어요. 소량만 드셔보세요.</div>';
+    return;
+  }
+  box.innerHTML = '';
+  scored.forEach(({food:f})=>{
+    const card = document.createElement('div');
+    card.className = 'rec-card';
+    card.innerHTML = `<div class="name">${f.name}</div><div class="desc">${f.kcal}kcal · 탄${f.carb} 단${f.protein} 지${f.fat} · ${f.tags.join(' ')}</div>`;
+    const btn = document.createElement('button');
+    btn.textContent = '투두에 추가 (예정)';
+    btn.onclick = ()=>{ currentLog.push({...f, eaten:false}); saveLog(); renderAll(); };
+    card.appendChild(btn);
+    box.appendChild(card);
+  });
+}
+
+function renderAll(){
+  renderDashboard();
+  renderLog();
+  renderRecommendations();
+}
+
+const HEALTH_INFO = [
+  {cat:"기초 지식", q:"하루 권장 탄수화물은 얼마나 되나요?", a:"2020 한국인 영양소 섭취기준 기준 <b>하루 100~130g이 최소 필요량</b>이고, 총 에너지의 <b>50~65%</b>를 탄수화물로 채우는 게 권장돼요. 2000kcal 기준이면 약 <b>250~325g</b> 정도예요."},
+  {cat:"기초 지식", q:"흰쌀밥/현미밥 한 공기에 탄수화물이 얼마나 있나요?", a:"흰쌀밥 한 공기(약 210g)는 탄수화물 약 <b>68~70g</b>, 현미밥은 약 <b>65g</b> 정도예요. 둘 다 칼로리는 약 300kcal로 비슷해요."},
+  {cat:"기초 지식", q:"하루 단백질은 얼마나 먹어야 하나요?", a:"ISSN(국제스포츠영양학회) 권장 기준으로 운동하는 사람은 <b>체중 1kg당 1.4~2.0g</b>이 적당해요. 다이어트 중 근육 손실을 최소화하려면 <b>2.3~3.1g/kg</b>까지 필요할 수 있어요."},
+  {cat:"기초 지식", q:"BMR과 TDEE는 뭐가 다른가요?", a:"BMR(기초대사량)은 가만히 있어도 쓰는 최소 에너지, TDEE(활동대사량)는 여기에 하루 활동량을 곱한 실제 하루 소모 칼로리예요. 다이어트/벌크업 목표 칼로리는 TDEE를 기준으로 가감해요."},
+  {cat:"기초 지식", q:"근육량이 많으면 왜 계산 공식이 달라지나요?", a:"근육(제지방량)은 지방보다 대사적으로 더 활발해서 같은 체중이라도 근육량이 많으면 기초대사량이 더 높아요. 그래서 인바디로 체지방률/골격근량을 아는 경우 Katch-McArdle 공식이 더 정확해요."},
+  {cat:"기초 지식", q:"하루 물은 얼마나 마셔야 하나요?", a:"흔히 알려진 '하루 2L'는 정확한 기준이 아니에요. WHO는 <b>1.5~2L</b>를 제시하고, 병원에서는 <b>체중(kg) × 0.03L</b> 공식을 많이 써요. 이 수치엔 음식으로 섭취하는 수분도 포함돼서, 세끼를 제대로 먹으면 필요량의 20% 정도는 이미 채워져요."},
+  {cat:"기초 지식", q:"식이섬유는 왜 챙겨 먹어야 하나요?", a:"식이섬유는 포만감을 오래 유지시켜서 다이어트 중 과식을 막아주고, 혈당이 급격히 오르는 걸 완화해줘요. 채소·현미·오트밀처럼 탄수화물이면서 식이섬유가 많은 음식을 우선순위에 두는 게 좋아요."},
+
+  {cat:"다이어트 속설", q:"저탄고지(키토) 식단은 왜 탄수화물을 극단적으로 줄이나요?", a:"뇌가 케톤증 없이 쓰는 포도당 최소량이 하루 약 100g이에요. 이 밑으로 오래 유지하면 몸이 지방을 케톤체로 바꿔 에너지원으로 쓰는 케토시스 상태에 들어가는 원리예요."},
+  {cat:"다이어트 속설", q:"몸무게가 하루에도 왔다갔다 하는 이유는?", a:"대부분 <b>수분 무게</b> 때문이에요. 나트륨 섭취, 물 섭취량, 배변 여부에 따라 1~2kg씩 바뀔 수 있어요. 체지방량이 실제로 변한 게 아니라서, 아침 공복 체중을 3~7일 평균 내서 보는 게 더 정확해요."},
+  {cat:"다이어트 속설", q:"칼로리 적자인데 왜 체중이 안 줄어요?", a:"수분 저류, 생리주기, 변비, 근육량 증가 등으로 단기간에는 체지방 변화가 체중계에 바로 안 보일 수 있어요. 1~2주 단위 평균 체중 추이로 판단하는 게 좋아요."},
+  {cat:"다이어트 속설", q:"조금씩 자주 먹으면 대사가 더 빨라지나요?", a:"연구 결과 대사량은 식사 횟수보다 <b>하루 총 섭취 칼로리와 영양소 균형</b>에 좌우돼요. 소량씩 자주 먹는 게 대사를 크게 높이지는 않지만, 혈당 관리나 포만감 유지에는 도움이 될 수 있어요."},
+  {cat:"다이어트 속설", q:"아침을 거르면 살이 더 잘 찌나요?", a:"국민건강영양조사 분석에서 하루 세끼를 먹는 남성보다 <b>두 끼만 먹는 남성이 대사증후군 위험이 1.16배 높게</b> 나타났어요. 다만 여성에서는 반대 경향도 보고돼서, 성별·개인차가 있는 주제예요."},
+  {cat:"다이어트 속설", q:"저녁 늦게 먹으면 살이 더 찌나요?", a:"저녁(18~21시) 식사 비중이 하루 섭취의 40% 이상이면 당뇨 위험이 1.36배 높아진다는 국내 분석이 있어요. 야식 자체보다 <b>하루 총량 중 늦은 시간에 몰아 먹는 패턴</b>이 문제가 되는 경우가 많아요."},
+  {cat:"다이어트 속설", q:"탄수화물을 줄이면 왜 초반에 체중이 빨리 빠지나요?", a:"탄수화물은 몸에 저장될 때 <b>글리코겐 1g당 물 3~4g</b>을 함께 붙잡아요. 탄수화물을 줄이면 이 글리코겐과 물이 먼저 빠지는 거라, 초반 체중 감소의 상당 부분은 체지방이 아니라 수분이에요."},
+  {cat:"다이어트 속설", q:"공복 유산소를 하면 지방이 더 잘 빠지나요?", a:"공복 상태에서 지방 산화 비율이 살짝 높아지긴 하지만, <b>하루 전체 지방 감량량은 공복 여부보다 총 칼로리 적자</b>에 더 크게 좌우된다는 게 최근 연구들의 대체적인 결론이에요."},
+  {cat:"다이어트 속설", q:"다이어트 중 정체기(플래토)는 왜 생기나요?", a:"체중이 줄면 몸이 소모하는 칼로리 자체도 줄어들어요(적응성 대사감소). 처음 짠 칼로리 목표를 그대로 유지하면 시간이 지나며 적자 폭이 좁아져서 정체기가 오는 게 자연스러운 현상이에요. 이땐 목표 칼로리를 재계산해주는 게 좋아요."},
+
+  {cat:"운동·보충제", q:"단백질을 한 끼에 많이 먹으면 남은 건 그냥 버려지나요?", a:"흡수 자체는 되지만 근육 합성에 쓰이는 양은 한 끼당 20~40g 선에서 효율이 높다고 알려져 있어요. 그래서 하루 총량을 채우되 <b>3~4시간 간격으로 나눠 먹는 게</b> 근육 합성 측면에서 더 유리해요."},
+  {cat:"운동·보충제", q:"크레아틴은 왜 많이 추천되나요?", a:"크레아틴은 스포츠영양 보충제 중 <b>연구가 가장 많이 축적된 성분</b> 중 하나로, 근력·근비대 훈련의 수행능력을 높이는 데 도움이 된다는 근거가 널리 인정돼요. 체중 증가는 대부분 근육 내 수분 저장 때문이에요."},
+  {cat:"운동·보충제", q:"근력운동과 유산소, 다이어트에 뭐가 더 중요한가요?", a:"체지방 감량 자체는 칼로리 적자가 핵심이지만, <b>근력운동을 병행해야 감량 중 근육 손실을 최소화</b>할 수 있어요. 근육량을 지켜야 기초대사량도 덜 떨어져서 요요 방지에도 유리해요."},
+
+  {cat:"호르몬·습관", q:"벌크업 할 때 무조건 많이 먹어야 하나요?", a:"칼로리 잉여가 너무 크면(더티벌크) 체지방이 과도하게 늘어요. TDEE 대비 <b>+10~15%</b> 정도의 완만한 잉여(린벌크)가 근육 증가 대비 체지방 증가를 최소화하는 데 유리하다고 알려져 있어요."},
+  {cat:"호르몬·습관", q:"요요는 왜 생기나요?", a:"단기간 급격한 식단 제한은 렙틴(포만 호르몬) 감소와 그렐린(공복 호르몬) 증가를 불러와서 식욕이 늘어나기 쉬워요. 여기에 낮아진 기초대사량까지 겹치면 감량 전보다 더 쉽게 살이 찌는 환경이 만들어져요. 천천히, 지속 가능한 속도로 감량하는 게 요요를 줄이는 핵심이에요."}
+];
+
+let activeInfoCategory = null;
+const INFO_CATEGORIES = [...new Set(HEALTH_INFO.map(i=>i.cat))];
+
+function buildInfoCategoryChips(){
+  const row = document.getElementById('infoCategoryRow');
+  if(!row) return;
+  row.innerHTML = '';
+  const allChip = document.createElement('button');
+  allChip.className = 'cat-chip' + (activeInfoCategory===null ? ' active' : '');
+  allChip.textContent = '전체';
+  allChip.onclick = ()=>{ activeInfoCategory = null; buildInfoCategoryChips(); renderInfoList(); };
+  row.appendChild(allChip);
+  INFO_CATEGORIES.forEach(cat=>{
+    const chip = document.createElement('button');
+    chip.className = 'cat-chip' + (activeInfoCategory===cat ? ' active' : '');
+    chip.textContent = cat;
+    chip.onclick = ()=>{ activeInfoCategory = (activeInfoCategory===cat ? null : cat); buildInfoCategoryChips(); renderInfoList(); };
+    row.appendChild(chip);
+  });
+}
+
+function renderInfoList(){
+  const box = document.getElementById('infoList');
+  box.innerHTML = '';
+  const pool = activeInfoCategory ? HEALTH_INFO.filter(i=>i.cat===activeInfoCategory) : HEALTH_INFO;
+  pool.forEach(item=>{
+    const el = document.createElement('div');
+    el.className = 'info-item';
+    el.innerHTML = `<div class="q">${item.q}</div><div class="a">${item.a}</div>`;
+    box.appendChild(el);
+  });
+}
+
+(async function init(){
+  await loadGoal();
+  await loadForDate();
+  buildCalcOptionRows();
+  renderInfoList();
+  buildCategoryChips();
+  buildInfoCategoryChips();
+})();
+</script>
+</body>
+</html>
