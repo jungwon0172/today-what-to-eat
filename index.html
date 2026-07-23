@@ -100,46 +100,6 @@
     <button id="tabCalc" onclick="switchTab('calc')">적정 섭취량 계산기</button>
     <button id="tabInfo" onclick="switchTab('info')">건강 정보</button>
     <button id="tabGoal" onclick="switchTab('goal')">목표 설정</button>
-    <button id="tabAbout" onclick="switchTab('about')">소개</button>
-    <button id="tabPolicy" onclick="switchTab('policy')">이용안내</button>
-  </div>
-
-  <div id="aboutPanel" class="hidden">
-    <div class="card">
-      <h2>오늘 뭐 먹지, 어떻게 만들었나요</h2>
-      <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.7;">
-        이 사이트는 헬스·다이어트를 하는 사람이 매번 "오늘 뭘 먹어야 하지"를 고민하지 않도록 만든 개인 식단 관리 도구예요.
-        단순히 먹은 걸 기록하는 데서 그치지 않고, 키·몸무게·인바디 수치를 넣으면 Mifflin-St Jeor·Katch-McArdle 같은
-        검증된 공식으로 하루 적정 섭취량을 계산해주고, 오늘 남은 매크로에 맞는 메뉴를 자동으로 추천해줍니다.
-        날짜를 넘겨가며 어제 기록도 보고 내일 식단도 미리 계획할 수 있어요.
-      </p>
-      <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.7;margin-top:10px;">
-        모든 계산 로직과 영양 정보는 실제 논문과 공식 가이드라인(ISSN 스포츠영양학회, 한국인 영양소 섭취기준 등)을
-        참고해서 만들었고, 계속 데이터와 기능을 추가해나가고 있습니다.
-      </p>
-    </div>
-  </div>
-
-  <div id="policyPanel" class="hidden">
-    <div class="card">
-      <h2>개인정보처리방침</h2>
-      <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.7;">
-        이 사이트는 별도의 회원가입이나 서버 전송 없이, 입력하신 키·몸무게·식단 기록을 <b>사용하시는 기기의 브라우저 안에만</b> 저장합니다.
-        저희(사이트 운영자)를 포함해 어떤 제3자도 이 정보를 서버로 전송받거나 열람할 수 없습니다.
-        브라우저 저장 데이터를 지우거나 다른 기기·다른 브라우저로 접속하면 이전 기록은 보이지 않습니다.
-      </p>
-      <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.7;margin-top:10px;">
-        이 사이트는 이용 경험 개선 및 광고 게재를 위해 Google 애드센스 등 제3자 서비스의 쿠키를 사용할 수 있습니다.
-        Google을 비롯한 제3자 공급업체는 쿠키를 사용하여 사용자의 관심분야를 토대로 광고를 게재합니다.
-      </p>
-    </div>
-    <div class="card">
-      <h2>이용 안내</h2>
-      <p style="font-size:12.5px;color:var(--ink-soft);line-height:1.7;">
-        이 사이트가 제공하는 칼로리·매크로 계산은 일반적인 공식에 기반한 <b>추정치</b>이며, 의학적 진단이나 처방을 대체하지 않습니다.
-        기저질환이 있거나 임신 중이신 경우, 식단을 크게 바꾸기 전에 반드시 의료 전문가와 상담해주세요.
-      </p>
-    </div>
   </div>
 
   <div id="infoPanel" class="hidden">
@@ -238,6 +198,11 @@
       <div class="search-results" id="searchResults"></div>
       <div class="hint">오늘/미래에 추가하면 처음엔 "예정"으로 표시돼요. 체크하면 "먹음"으로 바뀝니다.</div>
     </div>
+  </div>
+
+  <div style="display:flex;gap:14px;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;">
+    <a href="/about.html" style="color:var(--ink-soft);text-decoration:underline;">소개</a>
+    <a href="/privacy.html" style="color:var(--ink-soft);text-decoration:underline;">개인정보처리방침 / 이용안내</a>
   </div>
 </div>
 
@@ -415,14 +380,10 @@ function switchTab(tab){
   document.getElementById('tabCalc').classList.toggle('active', tab==='calc');
   document.getElementById('tabInfo').classList.toggle('active', tab==='info');
   document.getElementById('tabGoal').classList.toggle('active', tab==='goal');
-  document.getElementById('tabAbout').classList.toggle('active', tab==='about');
-  document.getElementById('tabPolicy').classList.toggle('active', tab==='policy');
   document.getElementById('dashPanel').classList.toggle('hidden', tab!=='dash');
   document.getElementById('calcPanel').classList.toggle('hidden', tab!=='calc');
   document.getElementById('infoPanel').classList.toggle('hidden', tab!=='info');
   document.getElementById('goalPanel').classList.toggle('hidden', tab!=='goal');
-  document.getElementById('aboutPanel').classList.toggle('hidden', tab!=='about');
-  document.getElementById('policyPanel').classList.toggle('hidden', tab!=='policy');
 }
 
 const GOAL_DIRECTIONS = {
@@ -721,7 +682,17 @@ const HEALTH_INFO = [
   {cat:"운동·보충제", q:"근력운동과 유산소, 다이어트에 뭐가 더 중요한가요?", a:"체지방 감량 자체는 칼로리 적자가 핵심이지만, <b>근력운동을 병행해야 감량 중 근육 손실을 최소화</b>할 수 있어요. 근육량을 지켜야 기초대사량도 덜 떨어져서 요요 방지에도 유리해요."},
 
   {cat:"호르몬·습관", q:"벌크업 할 때 무조건 많이 먹어야 하나요?", a:"칼로리 잉여가 너무 크면(더티벌크) 체지방이 과도하게 늘어요. TDEE 대비 <b>+10~15%</b> 정도의 완만한 잉여(린벌크)가 근육 증가 대비 체지방 증가를 최소화하는 데 유리하다고 알려져 있어요."},
-  {cat:"호르몬·습관", q:"요요는 왜 생기나요?", a:"단기간 급격한 식단 제한은 렙틴(포만 호르몬) 감소와 그렐린(공복 호르몬) 증가를 불러와서 식욕이 늘어나기 쉬워요. 여기에 낮아진 기초대사량까지 겹치면 감량 전보다 더 쉽게 살이 찌는 환경이 만들어져요. 천천히, 지속 가능한 속도로 감량하는 게 요요를 줄이는 핵심이에요."}
+  {cat:"호르몬·습관", q:"요요는 왜 생기나요?", a:"단기간 급격한 식단 제한은 렙틴(포만 호르몬) 감소와 그렐린(공복 호르몬) 증가를 불러와서 식욕이 늘어나기 쉬워요. 여기에 낮아진 기초대사량까지 겹치면 감량 전보다 더 쉽게 살이 찌는 환경이 만들어져요. 천천히, 지속 가능한 속도로 감량하는 게 요요를 줄이는 핵심이에요."},
+
+  {cat:"기초 지식", q:"지방은 하루에 얼마나 먹어야 하나요?", a:"보통 총 에너지의 <b>15~30%</b> 범위를 권장해요. 너무 적게 먹으면 지용성 비타민(A·D·E·K) 흡수와 호르몬 합성에 필요한 필수지방산이 부족해질 수 있어서, 극단적으로 줄이는 건 권장되지 않아요."},
+  {cat:"기초 지식", q:"1kg의 체지방은 몇 kcal인가요?", a:"체지방 1kg은 대략 <b>7700kcal</b>에 해당한다고 알려져 있어요. 하루 500kcal씩 적자를 내면 이론상 약 2주에 1kg이 빠지는 계산이 나오지만, 실제로는 대사 적응 때문에 갈수록 속도가 느려지는 경우가 많아요."},
+  {cat:"기초 지식", q:"체지방률은 어느 정도가 적정한가요?", a:"일반적으로 성인 남성은 <b>10~20%</b>, 여성은 <b>18~28%</b> 정도가 건강한 범위로 얘기돼요. 다만 나이·목적(경기력 vs 건강)에 따라 차이가 커서, 절대적인 기준보다는 본인 변화 추이를 보는 게 더 의미 있어요.", },
+  {cat:"기초 지식", q:"단백질을 너무 많이 먹으면 신장에 무리가 가나요?", a:"신장이 건강한 사람 기준으로는 체중당 2~3g/kg 수준의 고단백 섭취가 신장 기능에 해롭다는 근거는 약해요. 다만 이미 신장 질환이 있는 경우엔 다르므로, 기저질환이 있다면 반드시 전문가와 상담 후 섭취량을 정해야 해요."},
+  {cat:"다이어트 속설", q:"디톡스 주스나 클렌즈가 살을 빼는 데 도움이 되나요?", a:"단기간 체중 감소는 대부분 <b>수분과 근육 손실</b>이지 체지방 감소가 아니에요. 간과 신장이 이미 해독 기능을 하고 있어서, 별도의 디톡스가 필요하다는 과학적 근거는 부족해요."},
+  {cat:"다이어트 속설", q:"탄수화물을 저녁에만 먹으면 살이 덜 찌나요?", a:"탄수화물을 특정 시간대에 몰아 먹는 방식(탄수화물 백로딩)이 일반적인 분산 섭취보다 더 낫다는 강한 근거는 아직 부족해요. 결국 <b>하루 총 칼로리와 매크로 총량</b>이 체중 변화에 더 크게 작용해요."},
+  {cat:"다이어트 속설", q:"물만 마셔도 살이 찐다는 게 사실인가요?", a:"물 자체는 칼로리가 0이라 체지방으로 축적될 수 없어요. 다만 나트륨 섭취가 많으면 물을 더 붙잡아둬서 체중계 숫자가 일시적으로 올라갈 순 있는데, 이건 체지방 증가가 아니라 수분 저류예요."},
+  {cat:"운동·보충제", q:"BCAA는 꼭 먹어야 하나요?", a:"이미 하루 단백질 총량(1.4~2.0g/kg)을 음식으로 채우고 있다면 BCAA를 별도로 추가할 때 얻는 이득은 크지 않다는 게 최근 연구들의 대체적 시각이에요. 단백질 섭취가 부족한 상황에서만 보조적으로 의미가 있어요."},
+  {cat:"운동·보충제", q:"운동 직후 30분 안에 무조건 먹어야 하나요? (아나볼릭 윈도우)", a:"과거엔 운동 후 30분 내 섭취가 절대적이라고 알려졌지만, 최근 연구들은 <b>하루 전체 단백질 섭취 총량과 타이밍 분산</b>이 더 중요하다고 봐요. 운동 전후 몇 시간 이내에만 먹어도 큰 차이는 없다고 알려져 있어요."}
 ];
 
 let activeInfoCategory = null;
