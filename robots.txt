@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://today-what-to-eat-flax.vercel.app/sitemap.xml
