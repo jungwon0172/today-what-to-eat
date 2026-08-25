@@ -200,6 +200,19 @@
       <input type="text" id="searchBox" placeholder="예: 닭가슴살, 계란, 고구마" oninput="renderSearch()">
       <div class="search-results" id="searchResults"></div>
       <div class="hint">오늘/미래에 추가하면 처음엔 "예정"으로 표시돼요. 체크하면 "먹음"으로 바뀝니다.</div>
+
+      <button class="opt" style="margin-top:12px;width:100%;" onclick="toggleCustomForm()">찾는 음식이 없나요? 직접 추가하기 +</button>
+      <div id="customFoodForm" class="hidden" style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px;">
+        <input type="text" id="cfName" placeholder="음식 이름 (예: 엄마표 계란말이)" style="margin-bottom:8px;">
+        <div class="macro-grid">
+          <div><div class="macro-box"><div class="label">칼로리</div><input type="number" id="cfKcal" placeholder="kcal" style="text-align:center;padding:4px;"></div></div>
+          <div><div class="macro-box"><div class="label">탄수(g)</div><input type="number" id="cfCarb" placeholder="0" style="text-align:center;padding:4px;"></div></div>
+          <div><div class="macro-box"><div class="label">단백(g)</div><input type="number" id="cfProtein" placeholder="0" style="text-align:center;padding:4px;"></div></div>
+          <div><div class="macro-box"><div class="label">지방(g)</div><input type="number" id="cfFat" placeholder="0" style="text-align:center;padding:4px;"></div></div>
+        </div>
+        <button class="opt active" style="margin-top:10px;width:100%;background:var(--forest);color:#fff;border-color:var(--forest);" onclick="addCustomFood()">내 음식 목록에 저장</button>
+        <div class="hint">한번 저장하면 계속 검색에서 찾을 수 있어요. 영양정보는 제품 포장지나 식품영양성분DB(공공데이터포털)에서 확인하면 정확해요.</div>
+      </div>
     </div>
   </div>
 
@@ -312,7 +325,97 @@ const FOODS = [
   {name:"아메리카노 1잔", kcal:10, carb:2, protein:0.3, fat:0, tags:["저칼로리"], category:"음료"},
   {name:"라떼(우유) 1잔", kcal:150, carb:12, protein:8, fat:8, tags:[], category:"음료"},
   {name:"제로콜라 1캔", kcal:0, carb:0, protein:0, fat:0, tags:["저칼로리"], category:"음료"},
-  {name:"이온음료 500ml", kcal:130, carb:32, protein:0, fat:0, tags:[], category:"음료"}
+  {name:"이온음료 500ml", kcal:130, carb:32, protein:0, fat:0, tags:[], category:"음료"},
+  {name:"탄산수 500ml", kcal:0, carb:0, protein:0, fat:0, tags:["저칼로리"], category:"음료"},
+  {name:"식혜 1컵", kcal:120, carb:29, protein:1, fat:0.2, tags:["탄수화물"], category:"음료"},
+  {name:"플레인 두유 200ml", kcal:100, carb:8, protein:7, fat:4, tags:["식물성"], category:"음료"},
+  {name:"오렌지주스 200ml", kcal:90, carb:22, protein:1, fat:0.3, tags:[], category:"음료"},
+
+  {name:"김치찌개 1인분", kcal:320, carb:15, protein:18, fat:20, tags:["한식"], category:"한식/외식"},
+  {name:"된장찌개 1인분", kcal:220, carb:14, protein:15, fat:11, tags:["한식"], category:"한식/외식"},
+  {name:"순두부찌개 1인분", kcal:280, carb:12, protein:16, fat:18, tags:["한식"], category:"한식/외식"},
+  {name:"부대찌개 1인분", kcal:450, carb:30, protein:22, fat:26, tags:["한식"], category:"한식/외식"},
+  {name:"비빔밥 1그릇", kcal:560, carb:85, protein:18, fat:16, tags:["한식"], category:"한식/외식"},
+  {name:"제육볶음 1인분", kcal:480, carb:20, protein:28, fat:30, tags:["한식"], category:"한식/외식"},
+  {name:"불고기 1인분", kcal:380, carb:15, protein:30, fat:20, tags:["한식","고단백"], category:"한식/외식"},
+  {name:"갈비탕 1그릇", kcal:450, carb:15, protein:35, fat:26, tags:["한식","고단백"], category:"한식/외식"},
+  {name:"삼계탕 1그릇", kcal:700, carb:25, protein:55, fat:40, tags:["한식","고단백"], category:"한식/외식"},
+  {name:"물냉면 1그릇", kcal:480, carb:90, protein:15, fat:5, tags:["한식"], category:"한식/외식"},
+  {name:"비빔냉면 1그릇", kcal:550, carb:100, protein:14, fat:9, tags:["한식"], category:"한식/외식"},
+  {name:"잡채 1접시(150g)", kcal:280, carb:40, protein:5, fat:10, tags:["한식"], category:"한식/외식"},
+  {name:"떡국 1그릇", kcal:480, carb:80, protein:18, fat:9, tags:["한식"], category:"한식/외식"},
+  {name:"찐만두 5개", kcal:250, carb:30, protein:10, fat:9, tags:["한식","간편식"], category:"한식/외식"},
+  {name:"곰탕 1그릇", kcal:400, carb:10, protein:35, fat:24, tags:["한식","고단백"], category:"한식/외식"},
+  {name:"감자탕 1인분", kcal:550, carb:25, protein:32, fat:35, tags:["한식"], category:"한식/외식"},
+  {name:"족발 100g", kcal:260, carb:2, protein:22, fat:18, tags:["한식","고단백"], category:"한식/외식"},
+  {name:"보쌈 100g", kcal:230, carb:1, protein:20, fat:16, tags:["한식","고단백"], category:"한식/외식"},
+  {name:"오징어볶음 1인분", kcal:350, carb:25, protein:22, fat:18, tags:["한식"], category:"한식/외식"},
+  {name:"카레라이스 1그릇", kcal:600, carb:95, protein:14, fat:16, tags:["한식"], category:"한식/외식"},
+  {name:"우동 1그릇", kcal:420, carb:80, protein:12, fat:5, tags:["한식"], category:"한식/외식"},
+  {name:"라면(일반) 1개", kcal:500, carb:78, protein:10, fat:16, tags:["간편식"], category:"한식/외식"},
+  {name:"물만두 라면(계란추가)", kcal:580, carb:80, protein:16, fat:22, tags:["간편식"], category:"한식/외식"},
+  {name:"백김치 100g", kcal:20, carb:4, protein:1, fat:0.2, tags:["저칼로리"], category:"한식/외식"},
+  {name:"배추김치 100g", kcal:25, carb:4, protein:1.5, fat:0.5, tags:["저칼로리"], category:"한식/외식"},
+
+  {name:"피자 1조각(라지 1/8)", kcal:280, carb:32, protein:12, fat:12, tags:["배달"], category:"배달·프랜차이즈"},
+  {name:"양념치킨 3조각", kcal:650, carb:35, protein:33, fat:40, tags:["배달"], category:"배달·프랜차이즈"},
+  {name:"마라탕(순한맛, 고기 포함) 1인분", kcal:600, carb:40, protein:25, fat:35, tags:["배달"], category:"배달·프랜차이즈"},
+  {name:"크림파스타 1인분", kcal:750, carb:70, protein:20, fat:40, tags:["배달"], category:"배달·프랜차이즈"},
+  {name:"토마토파스타 1인분", kcal:550, carb:75, protein:16, fat:16, tags:["배달"], category:"배달·프랜차이즈"},
+  {name:"치즈버거 1개", kcal:450, carb:35, protein:22, fat:24, tags:["배달"], category:"배달·프랜차이즈"},
+  {name:"감자튀김(중) 1개", kcal:340, carb:44, protein:4, fat:16, tags:["배달"], category:"배달·프랜차이즈"},
+  {name:"탕수육(소) 1인분", kcal:700, carb:60, protein:25, fat:38, tags:["배달"], category:"배달·프랜차이즈"},
+  {name:"초밥 1피스(평균)", kcal:50, carb:8, protein:2.5, fat:0.7, tags:["간편식"], category:"배달·프랜차이즈"},
+  {name:"규동(소고기덮밥) 1그릇", kcal:650, carb:95, protein:22, fat:18, tags:["배달"], category:"배달·프랜차이즈"},
+
+  {name:"초콜릿 1조각(10g)", kcal:55, carb:6, protein:0.6, fat:3, tags:["간식"], category:"간식·디저트"},
+  {name:"아이스크림 콘 1개", kcal:200, carb:26, protein:3, fat:9, tags:["간식"], category:"간식·디저트"},
+  {name:"마카롱 1개", kcal:90, carb:12, protein:1, fat:4, tags:["간식"], category:"간식·디저트"},
+  {name:"생크림케이크 1조각", kcal:400, carb:45, protein:5, fat:22, tags:["간식"], category:"간식·디저트"},
+  {name:"감자칩(소포장) 1봉", kcal:150, carb:16, protein:2, fat:9, tags:["간식"], category:"간식·디저트"},
+  {name:"크로플 1개", kcal:320, carb:30, protein:5, fat:20, tags:["간식"], category:"간식·디저트"},
+  {name:"붕어빵 1개", kcal:190, carb:35, protein:5, fat:3, tags:["간식"], category:"간식·디저트"},
+  {name:"가래떡 100g", kcal:230, carb:52, protein:4, fat:0.5, tags:["탄수화물"], category:"간식·디저트"},
+  {name:"약과 1개", kcal:120, carb:16, protein:1.5, fat:6, tags:["간식"], category:"간식·디저트"},
+  {name:"젤리(소포장) 1봉", kcal:100, carb:24, protein:0, fat:0, tags:["간식"], category:"간식·디저트"},
+
+  {name:"포도 100g", kcal:69, carb:18, protein:0.7, fat:0.2, tags:[], category:"과일"},
+  {name:"수박 200g", kcal:60, carb:15, protein:1.2, fat:0.4, tags:["저칼로리"], category:"과일"},
+  {name:"참외 1개", kcal:70, carb:16, protein:1.3, fat:0.2, tags:[], category:"과일"},
+  {name:"키위 1개", kcal:42, carb:10, protein:0.8, fat:0.4, tags:[], category:"과일"},
+  {name:"파인애플 100g", kcal:50, carb:13, protein:0.5, fat:0.1, tags:[], category:"과일"},
+  {name:"자몽 1/2개", kcal:52, carb:13, protein:1, fat:0.2, tags:[], category:"과일"},
+  {name:"배 1개", kcal:120, carb:30, protein:0.7, fat:0.3, tags:[], category:"과일"},
+  {name:"감 1개", kcal:90, carb:23, protein:0.6, fat:0.3, tags:[], category:"과일"},
+
+  {name:"당근 1개", kcal:25, carb:6, protein:0.6, fat:0.1, tags:["저칼로리"], category:"채소"},
+  {name:"파프리카 1개", kcal:30, carb:6, protein:1, fat:0.3, tags:["저칼로리"], category:"채소"},
+  {name:"콩나물 100g", kcal:30, carb:4, protein:3, fat:0.5, tags:["저칼로리","식이섬유"], category:"채소"},
+  {name:"무생채 100g", kcal:45, carb:9, protein:1, fat:0.5, tags:["저칼로리"], category:"채소"},
+  {name:"단호박 100g(찐것)", kcal:70, carb:16, protein:1.5, fat:0.3, tags:["탄수화물"], category:"채소"},
+  {name:"미역줄기볶음 100g", kcal:60, carb:5, protein:1.5, fat:4, tags:["저칼로리"], category:"채소"},
+  {name:"양파 1개", kcal:44, carb:10, protein:1.2, fat:0.1, tags:["저칼로리"], category:"채소"},
+
+  {name:"저지방 치즈스틱 1개", kcal:70, carb:1, protein:7, fat:4, tags:["고단백","간편식"], category:"유제품"},
+  {name:"락토프리 우유 200ml", kcal:90, carb:9, protein:6.6, fat:3.6, tags:[], category:"유제품"},
+  {name:"떠먹는요거트드링크 1병", kcal:130, carb:22, protein:4, fat:2, tags:["간편식"], category:"유제품"},
+
+  {name:"캐슈넛 20g", kcal:110, carb:6, protein:3.5, fat:9, tags:["건강지방"], category:"견과류/지방"},
+  {name:"피스타치오 20g", kcal:113, carb:5.5, protein:4, fat:9, tags:["건강지방"], category:"견과류/지방"},
+  {name:"참기름 1스푼", kcal:120, carb:0, protein:0, fat:13.6, tags:["건강지방"], category:"견과류/지방"},
+
+  {name:"닭날개 3개", kcal:250, carb:0, protein:22, fat:18, tags:["고단백"], category:"고단백"},
+  {name:"닭안심 100g", kcal:106, carb:0, protein:23, fat:1, tags:["고단백","저지방"], category:"고단백"},
+  {name:"오리고기 100g", kcal:250, carb:0, protein:19, fat:19, tags:["고단백"], category:"고단백"},
+  {name:"게맛살 3개", kcal:80, carb:9, protein:8, fat:0.5, tags:["간편식"], category:"고단백"},
+  {name:"계란후라이 1개", kcal:100, carb:0.6, protein:6.5, fat:8, tags:["고단백"], category:"고단백"},
+  {name:"훈제오리 100g", kcal:290, carb:1, protein:18, fat:24, tags:["고단백"], category:"고단백"},
+
+  {name:"옥수수 1개", kcal:150, carb:35, protein:4, fat:1.5, tags:["탄수화물"], category:"탄수화물"},
+  {name:"크루아상 1개", kcal:230, carb:26, protein:4.5, fat:12, tags:["탄수화물"], category:"탄수화물"},
+  {name:"베이글 1개", kcal:280, carb:56, protein:10, fat:1.5, tags:["탄수화물"], category:"탄수화물"},
+  {name:"그래놀라 40g", kcal:180, carb:28, protein:4, fat:6, tags:["탄수화물"], category:"탄수화물"},
+  {name:"파스타면(삶은것) 100g", kcal:158, carb:31, protein:5.8, fat:0.9, tags:["탄수화물"], category:"탄수화물"}
 ];
 
 const DIET_PRESETS = {
@@ -580,7 +683,20 @@ function renderLog(){
 }
 
 let activeCategory = null;
-const FOOD_CATEGORIES = [...new Set(FOODS.map(f=>f.category))];
+let customFoods = [];
+const CUSTOM_CAT = "내가 추가한 음식";
+function allFoods(){ return [...FOODS, ...customFoods]; }
+function foodCategories(){ return [...new Set(allFoods().map(f=>f.category))]; }
+
+async function loadCustomFoods(){
+  try{
+    const r = await appStorage.get('customFoods');
+    customFoods = (r && r.value) ? JSON.parse(r.value) : [];
+  }catch(e){ customFoods = []; }
+}
+async function saveCustomFoods(){
+  try{ await appStorage.set('customFoods', JSON.stringify(customFoods)); }catch(e){}
+}
 
 function buildCategoryChips(){
   const row = document.getElementById('categoryRow');
@@ -590,7 +706,7 @@ function buildCategoryChips(){
   allChip.textContent = '전체';
   allChip.onclick = ()=>{ activeCategory = null; buildCategoryChips(); renderSearch(); };
   row.appendChild(allChip);
-  FOOD_CATEGORIES.forEach(cat=>{
+  foodCategories().forEach(cat=>{
     const chip = document.createElement('button');
     chip.className = 'cat-chip' + (activeCategory===cat ? ' active' : '');
     chip.textContent = cat;
@@ -599,13 +715,44 @@ function buildCategoryChips(){
   });
 }
 
+async function addCustomFood(){
+  const name = document.getElementById('cfName').value.trim();
+  const kcal = Number(document.getElementById('cfKcal').value);
+  const carb = Number(document.getElementById('cfCarb').value) || 0;
+  const protein = Number(document.getElementById('cfProtein').value) || 0;
+  const fat = Number(document.getElementById('cfFat').value) || 0;
+  if(!name || !kcal){
+    alert('음식 이름과 칼로리는 꼭 입력해주세요.');
+    return;
+  }
+  customFoods.push({name, kcal, carb, protein, fat, tags:["직접추가"], category:CUSTOM_CAT});
+  await saveCustomFoods();
+  document.getElementById('cfName').value = '';
+  document.getElementById('cfKcal').value = '';
+  document.getElementById('cfCarb').value = '';
+  document.getElementById('cfProtein').value = '';
+  document.getElementById('cfFat').value = '';
+  toggleCustomForm(false);
+  buildCategoryChips();
+  activeCategory = CUSTOM_CAT;
+  buildCategoryChips();
+  renderSearch();
+}
+
+function toggleCustomForm(show){
+  const el = document.getElementById('customFoodForm');
+  if(!el) return;
+  const isShown = show===undefined ? el.classList.contains('hidden') : show;
+  el.classList.toggle('hidden', !isShown);
+}
+
 function renderSearch(){
   const q = document.getElementById('searchBox').value.trim();
   const box = document.getElementById('searchResults');
-  let pool = activeCategory ? FOODS.filter(f=>f.category===activeCategory) : FOODS;
+  let pool = activeCategory ? allFoods().filter(f=>f.category===activeCategory) : allFoods();
   if(q){ pool = pool.filter(f=>f.name.includes(q) || f.tags.some(t=>t.includes(q))); }
   if(!q && !activeCategory){ box.innerHTML=''; return; }
-  if(pool.length===0){ box.innerHTML = '<div class="empty">일치하는 음식이 없어요.</div>'; return; }
+  if(pool.length===0){ box.innerHTML = '<div class="empty">일치하는 음식이 없어요. 아래 "직접 추가"로 등록해보세요.</div>'; return; }
   box.innerHTML = '';
   const defaultEaten = currentDate <= new Date();
   pool.forEach(f=>{
@@ -735,6 +882,7 @@ function renderInfoList(){
 
 (async function init(){
   await loadGoal();
+  await loadCustomFoods();
   await loadForDate();
   buildCalcOptionRows();
   renderInfoList();
