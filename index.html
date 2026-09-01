@@ -133,10 +133,20 @@
       <input type="number" id="activityDays" min="0" max="7" step="1" placeholder="0~7 사이 숫자" value="4" oninput="onActivityInput()">
       <div class="hint" id="activityHint"></div>
 
-      <h2 style="margin-top:16px;">목표</h2>
+      <h2 style="margin-top:16px;">다이어트 방식</h2>
       <div class="row" id="goalDirRow"></div>
+      <div class="hint" id="dietModeHint"></div>
 
       <button class="opt active" style="margin-top:14px;background:var(--forest);color:#fff;border-color:var(--forest);" onclick="runCalc()">계산하기</button>
+    </div>
+
+    <div class="card hidden" id="bmiCard">
+      <h2>내 BMI</h2>
+      <div class="macro-grid" style="grid-template-columns:repeat(2,1fr);">
+        <div class="macro-box"><div class="label">BMI 지수</div><div class="val" id="r-bmi">-</div></div>
+        <div class="macro-box"><div class="label">체중 상태</div><div class="val" id="r-bmi-cat">-</div></div>
+      </div>
+      <div class="hint">대한비만학회(아시아·태평양) 기준: 저체중 18.5 미만 · 정상 18.5~22.9 · 과체중(비만전단계) 23~24.9 · 비만 25 이상. 근육량이 많은 경우 BMI가 높게 나와도 체지방률로 다시 판단하는 게 정확해요.</div>
     </div>
 
     <div class="card hidden" id="calcResultCard">
@@ -147,9 +157,11 @@
         <div class="macro-box"><div class="label">활동대사량</div><div class="val" id="r-tdee">-</div></div>
         <div class="macro-box"><div class="label">목표 칼로리</div><div class="val" id="r-goalkcal">-</div></div>
         <div class="macro-box"><div class="label">목표 단백질</div><div class="val" id="r-protein">-</div></div>
+        <div class="macro-box"><div class="label">목표 탄수화물</div><div class="val" id="r-carb">-</div></div>
+        <div class="macro-box"><div class="label">목표 지방</div><div class="val" id="r-fat">-</div></div>
       </div>
       <button class="opt active" style="margin-top:14px;background:var(--forest);color:#fff;border-color:var(--forest);" onclick="applyCalcToGoal()">이 값으로 목표 설정하기</button>
-      <div class="hint">공식: 체지방률 입력 시 Katch-McArdle(제지방량 기준), 체지방률 없이 골격근량만 있으면 이를 통해 제지방량을 추정해 Katch-McArdle 적용, 둘 다 없으면 Mifflin-St Jeor 사용. 단백질은 체중당 1.6g(ISSN 권장 1.4~2.0g 범위) 기준.</div>
+      <div class="hint">공식: 체지방률 입력 시 Katch-McArdle(제지방량 기준), 체지방률 없이 골격근량만 있으면 이를 통해 제지방량을 추정해 Katch-McArdle 적용, 둘 다 없으면 Mifflin-St Jeor 사용.</div>
     </div>
   </div>
 
@@ -494,11 +506,30 @@ function switchTab(tab){
   document.getElementById('goalPanel').classList.toggle('hidden', tab!=='goal');
 }
 
-const GOAL_DIRECTIONS = {
-  "감량": -0.20,
-  "유지": 0,
-  "증량": 0.15
+const DIET_MODES = {
+  "다이어트": { kcalMult: 0.80, proteinPerKg: 1.8, fatPct: 0.25, carbCapG: null,
+    desc: "TDEE 대비 20% 칼로리 적자. 단백질을 높게 유지해 근손실을 최소화해요." },
+  "저탄고지": { kcalMult: 0.90, proteinPerKg: 1.6, fatPct: null, carbCapG: 50,
+    desc: "탄수화물을 하루 50g으로 고정하고 나머지를 지방으로 채워요. 케토시스 유도를 목표로 해요." },
+  "유지": { kcalMult: 1.00, proteinPerKg: 1.6, fatPct: 0.25, carbCapG: null,
+    desc: "TDEE 그대로 유지. 현재 체중·체형을 유지하고 싶을 때 적합해요." },
+  "린벌크": { kcalMult: 1.12, proteinPerKg: 1.8, fatPct: 0.22, carbCapG: null,
+    desc: "TDEE 대비 12% 완만한 잉여. 체지방 증가는 최소화하면서 근육을 늘려가요." },
+  "벌크업": { kcalMult: 1.20, proteinPerKg: 1.8, fatPct: 0.20, carbCapG: null,
+    desc: "TDEE 대비 20% 잉여로 탄수화물 비중을 높여 근육 성장에 필요한 에너지를 충분히 공급해요." }
 };
+
+function switchTab(tab){
+  document.getElementById('tabDash').classList.toggle('active', tab==='dash');
+  document.getElementById('tabCalc').classList.toggle('active', tab==='calc');
+  document.getElementById('tabInfo').classList.toggle('active', tab==='info');
+  document.getElementById('tabGoal').classList.toggle('active', tab==='goal');
+  document.getElementById('dashPanel').classList.toggle('hidden', tab!=='dash');
+  document.getElementById('calcPanel').classList.toggle('hidden', tab!=='calc');
+  document.getElementById('infoPanel').classList.toggle('hidden', tab!=='info');
+  document.getElementById('goalPanel').classList.toggle('hidden', tab!=='goal');
+}
+
 let calcGender = 'male';
 let calcGoalDir = "유지";
 let lastCalcResult = null;
@@ -517,13 +548,14 @@ function onActivityInput(){
 function buildCalcOptionRows(){
   const gRow = document.getElementById('goalDirRow');
   gRow.innerHTML = '';
-  Object.keys(GOAL_DIRECTIONS).forEach(k=>{
+  Object.keys(DIET_MODES).forEach(k=>{
     const b = document.createElement('button');
     b.className = 'opt' + (calcGoalDir===k ? ' active':'');
     b.textContent = k;
     b.onclick = ()=>{ calcGoalDir = k; buildCalcOptionRows(); };
     gRow.appendChild(b);
   });
+  document.getElementById('dietModeHint').textContent = DIET_MODES[calcGoalDir].desc;
   onActivityInput();
 }
 
@@ -531,6 +563,15 @@ function setGender(g){
   calcGender = g;
   document.getElementById('genderMale').classList.toggle('active', g==='male');
   document.getElementById('genderFemale').classList.toggle('active', g==='female');
+}
+
+function getBmiCategory(bmi){
+  if(bmi < 18.5) return { label: "저체중", suggestion: "벌크업이나 린벌크 쪽이 체중 증가에 도움이 될 수 있어요." };
+  if(bmi < 23) return { label: "정상", suggestion: "현재 체형 유지가 목적이면 '유지', 체형을 더 다듬고 싶으면 '린벌크'나 '다이어트'도 무리 없어요." };
+  if(bmi < 25) return { label: "과체중(비만전단계)", suggestion: "'다이어트' 모드로 완만한 칼로리 적자를 주는 걸 권장해요." };
+  if(bmi < 30) return { label: "비만 1단계", suggestion: "'다이어트' 모드를 우선 권장해요." };
+  if(bmi < 35) return { label: "비만 2단계", suggestion: "'다이어트' 모드를 권장하며, 기저질환이 있다면 병원 상담을 함께 받아보세요." };
+  return { label: "고도비만(3단계)", suggestion: "체중 감량 전 반드시 의료 전문가와 상담 후 계획을 세우는 게 안전해요." };
 }
 
 function runCalc(){
@@ -544,6 +585,14 @@ function runCalc(){
     alert('키, 몸무게, 나이를 모두 입력해주세요.');
     return;
   }
+
+  const heightM = height / 100;
+  const bmi = weight / (heightM * heightM);
+  const bmiCat = getBmiCategory(bmi);
+  document.getElementById('r-bmi').textContent = bmi.toFixed(1);
+  document.getElementById('r-bmi-cat').textContent = bmiCat.label;
+  document.getElementById('bmiCard').classList.remove('hidden');
+
   let bmr, methodNote;
   if(bodyFat && Number(bodyFat) > 0){
     const lbm = weight * (1 - Number(bodyFat)/100);
@@ -559,15 +608,27 @@ function runCalc(){
       : (10*weight + 6.25*height - 5*age - 161);
     methodNote = 'Mifflin-St Jeor 공식 사용 (체지방률이나 골격근량을 입력하면 Katch-McArdle로 더 정밀하게 계산돼요.)';
   }
+  methodNote += ` BMI ${bmi.toFixed(1)}(${bmiCat.label}) 참고: ${bmiCat.suggestion}`;
+
   const mult = activityMultiplier(activityDays);
   const tdee = bmr * mult;
-  const goalKcal = Math.round(tdee * (1 + GOAL_DIRECTIONS[calcGoalDir]));
-  const proteinG = Math.round(weight * 1.6);
+  const preset = DIET_MODES[calcGoalDir];
+  const goalKcal = Math.round(tdee * preset.kcalMult);
+  const proteinG = Math.round(weight * preset.proteinPerKg);
   const proteinKcal = proteinG * 4;
-  const fatKcal = goalKcal * 0.25;
-  const fatG = Math.round(fatKcal / 9);
-  const carbKcal = goalKcal - proteinKcal - fatKcal;
-  const carbG = Math.max(0, Math.round(carbKcal / 4));
+
+  let carbG, fatG;
+  if(preset.carbCapG !== null){
+    carbG = preset.carbCapG;
+    const carbKcal = carbG * 4;
+    const fatKcal = Math.max(0, goalKcal - proteinKcal - carbKcal);
+    fatG = Math.round(fatKcal / 9);
+  } else {
+    const fatKcal = goalKcal * preset.fatPct;
+    fatG = Math.round(fatKcal / 9);
+    const carbKcal = Math.max(0, goalKcal - proteinKcal - fatKcal);
+    carbG = Math.round(carbKcal / 4);
+  }
 
   lastCalcResult = {kcal: goalKcal, carb: carbG, protein: proteinG, fat: fatG};
 
@@ -575,6 +636,8 @@ function runCalc(){
   document.getElementById('r-tdee').textContent = Math.round(tdee) + ' kcal';
   document.getElementById('r-goalkcal').textContent = goalKcal + ' kcal';
   document.getElementById('r-protein').textContent = proteinG + ' g';
+  document.getElementById('r-carb').textContent = carbG + ' g';
+  document.getElementById('r-fat').textContent = fatG + ' g';
   document.getElementById('calcMethodNote').textContent = methodNote;
   document.getElementById('calcResultCard').classList.remove('hidden');
 }
@@ -593,6 +656,18 @@ async function applyCalcToGoal(){
   renderAll();
 }
 
+function normalizeLogItem(f){
+  if(f.qty !== undefined && f.baseKcal !== undefined) return f;
+  return {
+    name: f.name, tags: f.tags || [], category: f.category,
+    baseKcal: f.kcal, baseCarb: f.carb, baseProtein: f.protein, baseFat: f.fat,
+    qty: 1, eaten: !!f.eaten
+  };
+}
+function itemTotals(f){
+  return { kcal: f.baseKcal*f.qty, carb: f.baseCarb*f.qty, protein: f.baseProtein*f.qty, fat: f.baseFat*f.qty };
+}
+
 async function loadForDate(){
   document.getElementById('dateText').textContent = fmtDisplay(currentDate);
   const tag = document.getElementById('dayTag');
@@ -607,7 +682,8 @@ async function loadForDate(){
 
   try{
     const r = await appStorage.get(fmtKey(currentDate));
-    currentLog = (r && r.value) ? JSON.parse(r.value) : [];
+    const raw = (r && r.value) ? JSON.parse(r.value) : [];
+    currentLog = raw.map(normalizeLogItem);
   }catch(e){ currentLog = []; }
   renderAll();
 }
@@ -626,12 +702,14 @@ function goToday(){ currentDate = new Date(); loadForDate(); }
 
 function consumedTotals(){
   return currentLog.filter(f=>f.eaten).reduce((acc,f)=>{
-    acc.kcal+=f.kcal; acc.carb+=f.carb; acc.protein+=f.protein; acc.fat+=f.fat; return acc;
+    const t = itemTotals(f);
+    acc.kcal+=t.kcal; acc.carb+=t.carb; acc.protein+=t.protein; acc.fat+=t.fat; return acc;
   },{kcal:0,carb:0,protein:0,fat:0});
 }
 function plannedTotals(){
   return currentLog.reduce((acc,f)=>{
-    acc.kcal+=f.kcal; acc.carb+=f.carb; acc.protein+=f.protein; acc.fat+=f.fat; return acc;
+    const t = itemTotals(f);
+    acc.kcal+=t.kcal; acc.carb+=t.carb; acc.protein+=t.protein; acc.fat+=t.fat; return acc;
   },{kcal:0,carb:0,protein:0,fat:0});
 }
 function pct(cur,target){ return target>0 ? Math.min(100, Math.round(cur/target*100)) : 0; }
@@ -650,6 +728,18 @@ function renderDashboard(){
   document.getElementById('calcHint').textContent = useplan ? '※ 계획된(먹을 예정) 항목 기준 합계예요.' : '※ 체크한(먹은) 항목만 합산돼요.';
 }
 
+function changeQty(idx, delta){
+  const item = currentLog[idx];
+  const newQty = item.qty + delta;
+  if(newQty < 1){
+    currentLog.splice(idx,1);
+  } else {
+    item.qty = newQty;
+  }
+  saveLog();
+  renderAll();
+}
+
 function renderLog(){
   const list = document.getElementById('logList');
   if(currentLog.length===0){
@@ -658,6 +748,7 @@ function renderLog(){
   }
   list.innerHTML = '';
   currentLog.forEach((f, idx)=>{
+    const t = itemTotals(f);
     const row = document.createElement('div');
     row.className = 'log-item' + (f.eaten ? '' : ' planned');
     const cb = document.createElement('input');
@@ -667,8 +758,28 @@ function renderLog(){
     row.appendChild(cb);
     const info = document.createElement('div');
     info.className = 'info';
-    info.innerHTML = `<div>${f.name}</div><div class="meta">${Math.round(f.kcal)}kcal · 탄${Math.round(f.carb)} 단${Math.round(f.protein)} 지${Math.round(f.fat)}</div>`;
+    const qtyLabel = f.qty > 1 ? ` × ${f.qty}` : '';
+    info.innerHTML = `<div>${f.name}${qtyLabel}</div><div class="meta">${Math.round(t.kcal)}kcal · 탄${Math.round(t.carb)} 단${Math.round(t.protein)} 지${Math.round(t.fat)}</div>`;
     row.appendChild(info);
+
+    const qtyBox = document.createElement('div');
+    qtyBox.style.cssText = 'display:flex;align-items:center;gap:4px;flex-shrink:0;';
+    const minusBtn = document.createElement('button');
+    minusBtn.textContent = '−';
+    minusBtn.style.cssText = 'width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13px;line-height:1;';
+    minusBtn.onclick = ()=>changeQty(idx, -1);
+    const qtyNum = document.createElement('span');
+    qtyNum.textContent = f.qty;
+    qtyNum.style.cssText = 'font-size:12px;font-weight:700;min-width:14px;text-align:center;';
+    const plusBtn = document.createElement('button');
+    plusBtn.textContent = '+';
+    plusBtn.style.cssText = 'width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13px;line-height:1;';
+    plusBtn.onclick = ()=>changeQty(idx, 1);
+    qtyBox.appendChild(minusBtn);
+    qtyBox.appendChild(qtyNum);
+    qtyBox.appendChild(plusBtn);
+    row.appendChild(qtyBox);
+
     const status = document.createElement('span');
     status.className = 'status ' + (f.eaten ? 'eaten' : 'planned');
     status.textContent = f.eaten ? '먹음' : '예정';
@@ -758,14 +869,46 @@ function renderSearch(){
   pool.forEach(f=>{
     const row = document.createElement('div');
     row.className = 'food-row';
-    row.innerHTML = `<div><div class="name">${f.name}</div><div class="tags">${f.tags.map(t=>'<span class="tag-pill">'+t+'</span>').join('')}</div></div><div class="kcal">${f.kcal}kcal</div>`;
-    row.onclick = ()=>{
-      currentLog.push({...f, eaten: defaultEaten});
+
+    const nameBox = document.createElement('div');
+    nameBox.innerHTML = `<div class="name">${f.name}</div><div class="tags">${f.tags.map(t=>'<span class="tag-pill">'+t+'</span>').join('')}</div>`;
+    row.appendChild(nameBox);
+
+    const rightBox = document.createElement('div');
+    rightBox.style.cssText = 'display:flex;align-items:center;gap:6px;flex-shrink:0;';
+
+    const qtyInput = document.createElement('input');
+    qtyInput.type = 'number';
+    qtyInput.value = 1;
+    qtyInput.min = 1;
+    qtyInput.style.cssText = 'width:44px;padding:5px 4px;text-align:center;font-size:12px;border:1px solid var(--line);border-radius:6px;';
+    qtyInput.onclick = (e)=>e.stopPropagation();
+
+    const kcalLabel = document.createElement('div');
+    kcalLabel.className = 'kcal';
+    kcalLabel.textContent = f.kcal + 'kcal';
+
+    const addBtn = document.createElement('button');
+    addBtn.textContent = '추가';
+    addBtn.style.cssText = 'padding:6px 10px;border-radius:8px;border:none;background:var(--forest);color:#fff;font-size:11px;font-weight:600;cursor:pointer;';
+    addBtn.onclick = (e)=>{
+      e.stopPropagation();
+      const qty = Math.max(1, Number(qtyInput.value) || 1);
+      currentLog.push({
+        name: f.name, tags: f.tags, category: f.category,
+        baseKcal: f.kcal, baseCarb: f.carb, baseProtein: f.protein, baseFat: f.fat,
+        qty, eaten: defaultEaten
+      });
       saveLog();
       document.getElementById('searchBox').value='';
       box.innerHTML='';
       renderAll();
     };
+
+    rightBox.appendChild(qtyInput);
+    rightBox.appendChild(kcalLabel);
+    rightBox.appendChild(addBtn);
+    row.appendChild(rightBox);
     box.appendChild(row);
   });
 }
@@ -798,7 +941,14 @@ function renderRecommendations(){
     card.innerHTML = `<div class="name">${f.name}</div><div class="desc">${f.kcal}kcal · 탄${f.carb} 단${f.protein} 지${f.fat} · ${f.tags.join(' ')}</div>`;
     const btn = document.createElement('button');
     btn.textContent = '투두에 추가 (예정)';
-    btn.onclick = ()=>{ currentLog.push({...f, eaten:false}); saveLog(); renderAll(); };
+    btn.onclick = ()=>{
+      currentLog.push({
+        name: f.name, tags: f.tags, category: f.category,
+        baseKcal: f.kcal, baseCarb: f.carb, baseProtein: f.protein, baseFat: f.fat,
+        qty: 1, eaten: false
+      });
+      saveLog(); renderAll();
+    };
     card.appendChild(btn);
     box.appendChild(card);
   });
