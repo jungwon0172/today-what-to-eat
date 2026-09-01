@@ -216,8 +216,15 @@
     </div>
 
     <div class="card">
-      <h2 id="listTitle">이 날의 식단 투두</h2>
-      <div id="logList"><div class="empty">아직 항목이 없어요.</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h2 id="listTitle" style="margin:0;">이 날의 식단 투두</h2>
+        <div style="display:flex;gap:6px;">
+          <button onclick="startCopyDay()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:var(--ink-soft);">📋 전체 복사</button>
+          <button onclick="clearDay()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:11px;font-weight:600;cursor:pointer;color:var(--berry);">🗑 전체 삭제</button>
+        </div>
+      </div>
+      <div id="copyModeHint" class="hint hidden" style="color:var(--forest);font-weight:600;">복사할 날짜를 위 달력에서 선택해주세요. <span style="text-decoration:underline;cursor:pointer;" onclick="cancelCopyMode()">취소</span></div>
+      <div id="logList" style="margin-top:8px;"><div class="empty">아직 항목이 없어요.</div></div>
     </div>
 
     <div class="card">
@@ -754,9 +761,11 @@ function goToday(){ currentDate = new Date(); loadForDate(); }
 
 let calViewDate = new Date();
 let calendarOpen = false;
+let calendarMode = 'nav'; // 'nav' or 'copy'
 
 function toggleCalendar(){
   calendarOpen = !calendarOpen;
+  calendarMode = 'nav';
   document.getElementById('calendarPanel').classList.toggle('hidden', !calendarOpen);
   if(calendarOpen){
     calViewDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
@@ -801,13 +810,74 @@ function renderCalendar(){
     else if(isToday){ bg = 'var(--forest-soft)'; color = 'var(--forest)'; fontWeight='700'; }
     cell.style.cssText = `padding:6px 0;border-radius:8px;border:${border};background:${bg};color:${color};font-weight:${fontWeight};cursor:pointer;font-size:11px;`;
     cell.onclick = ()=>{
-      currentDate = cellDate;
-      calendarOpen = false;
-      document.getElementById('calendarPanel').classList.add('hidden');
-      loadForDate();
+      if(calendarMode === 'copy'){
+        copyDayTo(cellDate);
+      } else {
+        currentDate = cellDate;
+        calendarOpen = false;
+        document.getElementById('calendarPanel').classList.add('hidden');
+        loadForDate();
+      }
     };
     grid.appendChild(cell);
   }
+}
+
+function startCopyDay(){
+  if(currentLog.length===0){
+    alert('복사할 항목이 없어요.');
+    return;
+  }
+  calendarMode = 'copy';
+  calendarOpen = true;
+  document.getElementById('calendarPanel').classList.remove('hidden');
+  document.getElementById('copyModeHint').classList.remove('hidden');
+  calViewDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  renderCalendar();
+}
+
+function cancelCopyMode(){
+  calendarMode = 'nav';
+  calendarOpen = false;
+  document.getElementById('calendarPanel').classList.add('hidden');
+  document.getElementById('copyModeHint').classList.add('hidden');
+}
+
+async function copyDayTo(targetDate){
+  if(sameDay(targetDate, currentDate)){
+    alert('같은 날짜로는 복사할 수 없어요. 다른 날짜를 선택해주세요.');
+    return;
+  }
+  const targetIsFuture = targetDate > new Date() && !sameDay(targetDate, new Date());
+  const copiedItems = currentLog.map(f=>({...f, eaten: targetIsFuture ? false : f.eaten}));
+
+  try{
+    const r = await appStorage.get(fmtKey(targetDate));
+    const existing = (r && r.value) ? JSON.parse(r.value).map(normalizeLogItem) : [];
+    const merged = [...existing, ...copiedItems];
+    await appStorage.set(fmtKey(targetDate), JSON.stringify(merged));
+  }catch(e){}
+
+  calendarMode = 'nav';
+  calendarOpen = false;
+  document.getElementById('calendarPanel').classList.add('hidden');
+  document.getElementById('copyModeHint').classList.add('hidden');
+  alert(`${fmtDisplay(targetDate)}로 ${copiedItems.length}개 항목을 복사했어요.`);
+}
+
+function clearDay(){
+  if(currentLog.length===0) return;
+  if(!confirm(`${fmtDisplay(currentDate)}의 식단 기록 ${currentLog.length}개를 전부 삭제할까요?`)) return;
+  currentLog = [];
+  saveLog();
+  renderAll();
+}
+
+function duplicateItem(idx){
+  const copy = { ...currentLog[idx] };
+  currentLog.splice(idx+1, 0, copy);
+  saveLog();
+  renderAll();
 }
 
 function consumedTotals(){
@@ -910,6 +980,12 @@ function renderLog(){
       status.className = 'status ' + (f.eaten ? 'eaten' : 'planned');
       status.textContent = f.eaten ? '먹음' : '예정';
       row.appendChild(status);
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'del';
+      copyBtn.textContent = '복사';
+      copyBtn.style.color = 'var(--forest)';
+      copyBtn.onclick = ()=>duplicateItem(idx);
+      row.appendChild(copyBtn);
       const del = document.createElement('button');
       del.className = 'del';
       del.textContent = '삭제';
