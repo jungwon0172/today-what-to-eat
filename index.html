@@ -181,12 +181,25 @@
 
   <div id="dashPanel">
     <div class="card">
-      <div class="jump-today" onclick="goToday()">오늘로 이동</div>
+      <div style="display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:2px;">
+        <div class="jump-today" onclick="goToday()">오늘로 이동</div>
+        <div class="jump-today" onclick="toggleCalendar()">📅 달력</div>
+      </div>
       <div class="date-nav">
         <button onclick="changeDate(-1)">‹</button>
         <div class="date-label"><span id="dateText">-</span><span class="day-tag" id="dayTag"></span></div>
         <button onclick="changeDate(1)">›</button>
       </div>
+
+      <div id="calendarPanel" class="hidden" style="border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:12px;background:#FAF9F5;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <button onclick="calChangeMonth(-1)" style="width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;">‹</button>
+          <div id="calMonthLabel" style="font-weight:700;font-size:13px;">-</div>
+          <button onclick="calChangeMonth(1)" style="width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer;">›</button>
+        </div>
+        <div id="calGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;font-size:11px;"></div>
+      </div>
+
       <div class="macro-grid">
         <div class="macro-box"><div class="label">칼로리</div><div class="val" id="d-kcal">0/0</div><div class="bar-track"><div class="bar-fill kcal" id="b-kcal" style="width:0%"></div></div></div>
         <div class="macro-box"><div class="label">탄수</div><div class="val" id="d-carb">0/0</div><div class="bar-track"><div class="bar-fill carb" id="b-carb" style="width:0%"></div></div></div>
@@ -198,6 +211,7 @@
 
     <div class="card" id="recCard">
       <h2>오늘 추천 메뉴 (남은 매크로 기준)</h2>
+
       <div id="recList"></div>
     </div>
 
@@ -208,6 +222,10 @@
 
     <div class="card">
       <h2>음식 검색해서 추가</h2>
+      <div style="margin-bottom:10px;">
+        <div class="hint" style="margin:0 0 6px;">몇 끼니에 추가할까요?</div>
+        <div class="row" id="mealTagRow"></div>
+      </div>
       <div class="row" id="categoryRow" style="margin-bottom:10px;"></div>
       <input type="text" id="searchBox" placeholder="예: 닭가슴살, 계란, 고구마" oninput="renderSearch()">
       <div class="search-results" id="searchResults"></div>
@@ -656,12 +674,46 @@ async function applyCalcToGoal(){
   renderAll();
 }
 
+const MEAL_TAGS = [
+  { key: "아침", color: "#E8A33D", soft: "#FBEBD2" },
+  { key: "점심", color: "#4A7FBF", soft: "#DCE7F5" },
+  { key: "저녁", color: "#8B5FBF", soft: "#EBE0F5" },
+  { key: "간식", color: "#C9638F", soft: "#F7DDE7" },
+  { key: "야식", color: "#445577", soft: "#DDE1E9" }
+];
+function guessMealTag(){
+  const h = new Date().getHours();
+  if(h < 10) return "아침";
+  if(h < 15) return "점심";
+  if(h < 19) return "간식";
+  if(h < 23) return "저녁";
+  return "야식";
+}
+let selectedMealTag = guessMealTag();
+
+function buildMealTagChips(){
+  const row = document.getElementById('mealTagRow');
+  if(!row) return;
+  row.innerHTML = '';
+  MEAL_TAGS.forEach(mt=>{
+    const btn = document.createElement('button');
+    btn.textContent = mt.key;
+    const isActive = selectedMealTag === mt.key;
+    btn.style.cssText = `padding:7px 14px;border-radius:20px;border:1.5px solid ${isActive ? mt.color : 'var(--line)'};background:${isActive ? mt.color : '#fff'};color:${isActive ? '#fff' : 'var(--ink-soft)'};font-size:12px;font-weight:700;cursor:pointer;`;
+    btn.onclick = ()=>{ selectedMealTag = mt.key; buildMealTagChips(); };
+    row.appendChild(btn);
+  });
+}
+function mealTagInfo(key){
+  return MEAL_TAGS.find(m=>m.key===key) || { key: key || "기타", color: "#8B8F86", soft: "#E4E1D6" };
+}
+
 function normalizeLogItem(f){
-  if(f.qty !== undefined && f.baseKcal !== undefined) return f;
+  if(f.qty !== undefined && f.baseKcal !== undefined) return { mealTag: "기타", ...f };
   return {
     name: f.name, tags: f.tags || [], category: f.category,
     baseKcal: f.kcal, baseCarb: f.carb, baseProtein: f.protein, baseFat: f.fat,
-    qty: 1, eaten: !!f.eaten
+    qty: 1, eaten: !!f.eaten, mealTag: "기타"
   };
 }
 function itemTotals(f){
@@ -699,6 +751,64 @@ function changeDate(offset){
   loadForDate();
 }
 function goToday(){ currentDate = new Date(); loadForDate(); }
+
+let calViewDate = new Date();
+let calendarOpen = false;
+
+function toggleCalendar(){
+  calendarOpen = !calendarOpen;
+  document.getElementById('calendarPanel').classList.toggle('hidden', !calendarOpen);
+  if(calendarOpen){
+    calViewDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    renderCalendar();
+  }
+}
+
+function calChangeMonth(offset){
+  calViewDate = new Date(calViewDate.getFullYear(), calViewDate.getMonth()+offset, 1);
+  renderCalendar();
+}
+
+function renderCalendar(){
+  const y = calViewDate.getFullYear();
+  const m = calViewDate.getMonth();
+  document.getElementById('calMonthLabel').textContent = `${y}년 ${m+1}월`;
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  ['일','월','화','수','목','금','토'].forEach(d=>{
+    const h = document.createElement('div');
+    h.textContent = d;
+    h.style.cssText = 'color:var(--ink-soft);font-weight:700;padding:2px 0;';
+    grid.appendChild(h);
+  });
+
+  const firstDay = new Date(y, m, 1).getDay();
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const today = new Date();
+
+  for(let i=0;i<firstDay;i++){
+    grid.appendChild(document.createElement('div'));
+  }
+  for(let day=1; day<=daysInMonth; day++){
+    const cellDate = new Date(y, m, day);
+    const isToday = sameDay(cellDate, today);
+    const isSelected = sameDay(cellDate, currentDate);
+    const cell = document.createElement('button');
+    cell.textContent = day;
+    let bg = '#fff', color = 'var(--ink)', border = '1px solid var(--line)', fontWeight = '500';
+    if(isSelected){ bg = 'var(--forest)'; color = '#fff'; border='1px solid var(--forest)'; fontWeight='700'; }
+    else if(isToday){ bg = 'var(--forest-soft)'; color = 'var(--forest)'; fontWeight='700'; }
+    cell.style.cssText = `padding:6px 0;border-radius:8px;border:${border};background:${bg};color:${color};font-weight:${fontWeight};cursor:pointer;font-size:11px;`;
+    cell.onclick = ()=>{
+      currentDate = cellDate;
+      calendarOpen = false;
+      document.getElementById('calendarPanel').classList.add('hidden');
+      loadForDate();
+    };
+    grid.appendChild(cell);
+  }
+}
 
 function consumedTotals(){
   return currentLog.filter(f=>f.eaten).reduce((acc,f)=>{
@@ -747,49 +857,66 @@ function renderLog(){
     return;
   }
   list.innerHTML = '';
+  const order = ["아침","점심","저녁","간식","야식","기타"];
+  const groups = {};
   currentLog.forEach((f, idx)=>{
-    const t = itemTotals(f);
-    const row = document.createElement('div');
-    row.className = 'log-item' + (f.eaten ? '' : ' planned');
-    const cb = document.createElement('input');
-    cb.type = 'checkbox';
-    cb.checked = !!f.eaten;
-    cb.onchange = ()=>{ currentLog[idx].eaten = cb.checked; saveLog(); renderAll(); };
-    row.appendChild(cb);
-    const info = document.createElement('div');
-    info.className = 'info';
-    const qtyLabel = f.qty > 1 ? ` × ${f.qty}` : '';
-    info.innerHTML = `<div>${f.name}${qtyLabel}</div><div class="meta">${Math.round(t.kcal)}kcal · 탄${Math.round(t.carb)} 단${Math.round(t.protein)} 지${Math.round(t.fat)}</div>`;
-    row.appendChild(info);
+    const key = f.mealTag || "기타";
+    if(!groups[key]) groups[key] = [];
+    groups[key].push(idx);
+  });
 
-    const qtyBox = document.createElement('div');
-    qtyBox.style.cssText = 'display:flex;align-items:center;gap:4px;flex-shrink:0;';
-    const minusBtn = document.createElement('button');
-    minusBtn.textContent = '−';
-    minusBtn.style.cssText = 'width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13px;line-height:1;';
-    minusBtn.onclick = ()=>changeQty(idx, -1);
-    const qtyNum = document.createElement('span');
-    qtyNum.textContent = f.qty;
-    qtyNum.style.cssText = 'font-size:12px;font-weight:700;min-width:14px;text-align:center;';
-    const plusBtn = document.createElement('button');
-    plusBtn.textContent = '+';
-    plusBtn.style.cssText = 'width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13px;line-height:1;';
-    plusBtn.onclick = ()=>changeQty(idx, 1);
-    qtyBox.appendChild(minusBtn);
-    qtyBox.appendChild(qtyNum);
-    qtyBox.appendChild(plusBtn);
-    row.appendChild(qtyBox);
+  order.filter(k=>groups[k] && groups[k].length>0).forEach(key=>{
+    const info = mealTagInfo(key);
+    const header = document.createElement('div');
+    header.style.cssText = `display:flex;align-items:center;gap:6px;margin:10px 0 4px;`;
+    header.innerHTML = `<span style="width:8px;height:8px;border-radius:50%;background:${info.color};display:inline-block;"></span><span style="font-size:12px;font-weight:700;color:${info.color};">${key}</span>`;
+    list.appendChild(header);
 
-    const status = document.createElement('span');
-    status.className = 'status ' + (f.eaten ? 'eaten' : 'planned');
-    status.textContent = f.eaten ? '먹음' : '예정';
-    row.appendChild(status);
-    const del = document.createElement('button');
-    del.className = 'del';
-    del.textContent = '삭제';
-    del.onclick = ()=>{ currentLog.splice(idx,1); saveLog(); renderAll(); };
-    row.appendChild(del);
-    list.appendChild(row);
+    groups[key].forEach(idx=>{
+      const f = currentLog[idx];
+      const t = itemTotals(f);
+      const row = document.createElement('div');
+      row.className = 'log-item' + (f.eaten ? '' : ' planned');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!f.eaten;
+      cb.onchange = ()=>{ currentLog[idx].eaten = cb.checked; saveLog(); renderAll(); };
+      row.appendChild(cb);
+      const itemInfo = document.createElement('div');
+      itemInfo.className = 'info';
+      const qtyLabel = f.qty > 1 ? ` × ${f.qty}` : '';
+      itemInfo.innerHTML = `<div>${f.name}${qtyLabel}</div><div class="meta">${Math.round(t.kcal)}kcal · 탄${Math.round(t.carb)} 단${Math.round(t.protein)} 지${Math.round(t.fat)}</div>`;
+      row.appendChild(itemInfo);
+
+      const qtyBox = document.createElement('div');
+      qtyBox.style.cssText = 'display:flex;align-items:center;gap:4px;flex-shrink:0;';
+      const minusBtn = document.createElement('button');
+      minusBtn.textContent = '−';
+      minusBtn.style.cssText = 'width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13px;line-height:1;';
+      minusBtn.onclick = ()=>changeQty(idx, -1);
+      const qtyNum = document.createElement('span');
+      qtyNum.textContent = f.qty;
+      qtyNum.style.cssText = 'font-size:12px;font-weight:700;min-width:14px;text-align:center;';
+      const plusBtn = document.createElement('button');
+      plusBtn.textContent = '+';
+      plusBtn.style.cssText = 'width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:13px;line-height:1;';
+      plusBtn.onclick = ()=>changeQty(idx, 1);
+      qtyBox.appendChild(minusBtn);
+      qtyBox.appendChild(qtyNum);
+      qtyBox.appendChild(plusBtn);
+      row.appendChild(qtyBox);
+
+      const status = document.createElement('span');
+      status.className = 'status ' + (f.eaten ? 'eaten' : 'planned');
+      status.textContent = f.eaten ? '먹음' : '예정';
+      row.appendChild(status);
+      const del = document.createElement('button');
+      del.className = 'del';
+      del.textContent = '삭제';
+      del.onclick = ()=>{ currentLog.splice(idx,1); saveLog(); renderAll(); };
+      row.appendChild(del);
+      list.appendChild(row);
+    });
   });
 }
 
@@ -897,7 +1024,7 @@ function renderSearch(){
       currentLog.push({
         name: f.name, tags: f.tags, category: f.category,
         baseKcal: f.kcal, baseCarb: f.carb, baseProtein: f.protein, baseFat: f.fat,
-        qty, eaten: defaultEaten
+        qty, eaten: defaultEaten, mealTag: selectedMealTag
       });
       saveLog();
       document.getElementById('searchBox').value='';
@@ -945,7 +1072,7 @@ function renderRecommendations(){
       currentLog.push({
         name: f.name, tags: f.tags, category: f.category,
         baseKcal: f.kcal, baseCarb: f.carb, baseProtein: f.protein, baseFat: f.fat,
-        qty: 1, eaten: false
+        qty: 1, eaten: false, mealTag: selectedMealTag
       });
       saveLog(); renderAll();
     };
@@ -1033,6 +1160,7 @@ function renderInfoList(){
 (async function init(){
   await loadGoal();
   await loadCustomFoods();
+  buildMealTagChips();
   await loadForDate();
   buildCalcOptionRows();
   renderInfoList();
