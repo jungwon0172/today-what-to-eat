@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>앱처럼 설치하기 — 오늘 뭐 먹지</title>
+<meta name="description" content="오늘 뭐 먹지를 아이폰과 안드로이드 홈 화면에 앱처럼 설치하는 방법을 안내합니다.">
+<meta name="robots" content="index, follow">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2F4B3C">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2557338953436433" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --bg:#F6F4EE; --card:#FFFFFF; --ink:#232420; --ink-soft:#6B6E66;
+    --line:#E4E1D6; --forest:#2F4B3C; --forest-soft:#DCE6DE; --citrus:#E8A33D; --citrus-soft:#FBEBD2; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;padding:24px 16px 60px;}
+  .wrap{max-width:480px;margin:0 auto;}
+  h1{font-size:22px;font-weight:700;margin:0 0 4px;letter-spacing:-0.3px;}
+  .sub{color:var(--ink-soft);font-size:13px;margin:0 0 20px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+  .card h2{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--forest);display:flex;align-items:center;gap:8px;}
+  .card .platform-sub{font-size:12px;color:var(--ink-soft);margin:0 0 14px;}
+  p{font-size:13px;color:var(--ink-soft);line-height:1.75;margin:0 0 12px;}
+  a.back{display:inline-block;margin-bottom:16px;font-size:13px;color:var(--forest);text-decoration:none;font-weight:600;}
+  a.back:hover{text-decoration:underline;}
+  .foot-nav{display:flex;gap:14px;margin-top:20px;font-size:12px;flex-wrap:wrap;}
+  .foot-nav a{color:var(--ink-soft);text-decoration:underline;}
+  .steps{list-style:none;margin:0;padding:0;counter-reset:step;}
+  .steps li{counter-increment:step;position:relative;padding:0 0 16px 34px;font-size:13px;color:var(--ink);line-height:1.6;}
+  .steps li:last-child{padding-bottom:0;}
+  .steps li::before{
+    content:counter(step);
+    position:absolute; left:0; top:-1px;
+    width:24px; height:24px; border-radius:50%;
+    background:var(--forest); color:#fff; font-size:12px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .steps li b{display:block;font-size:13.5px;margin-bottom:2px;color:var(--ink);}
+  .steps li span{color:var(--ink-soft);}
+  .note{background:var(--citrus-soft);border-radius:10px;padding:10px 12px;font-size:12px;color:#8A5A0E;margin-top:14px;}
+  .badge{display:inline-block;background:var(--forest-soft);color:var(--forest);font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">← 홈으로</a>
+  <h1>앱처럼 설치하기</h1>
+  <p class="sub">회원가입 없이, 지금 쓰던 기록 그대로 홈 화면에 아이콘으로 설치할 수 있어요.</p>
+
+  <div class="card">
+    <h2>📱 아이폰 (Safari 필수)</h2>
+    <p class="platform-sub">인스타그램·카카오톡 안의 인앱 브라우저나 크롬에서는 설치 메뉴가 뜨지 않아요. 반드시 <b>Safari 앱</b>으로 열어주세요.</p>
+    <ol class="steps">
+      <li><b>Safari로 사이트 접속</b><span>홈 화면의 파란색 나침반 모양 Safari 앱을 열고 사이트 주소를 입력하세요.</span></li>
+      <li><b>공유 버튼 누르기</b><span>화면 아래쪽(최신 기종은 위쪽)에 있는, 네모 상자 위로 화살표가 나오는 모양의 공유 아이콘을 누르세요.</span></li>
+      <li><b>'홈 화면에 추가' 찾기</b><span>메뉴를 위로 쓸어올려 아래로 내리면 '홈 화면에 추가' 항목이 있어요. 안 보이면 맨 아래 '동작 편집'에서 추가할 수 있어요.</span></li>
+      <li><b>이름 확인하고 추가</b><span>이름과 아이콘 미리보기가 뜨면 그대로 두고 오른쪽 위 '추가'를 누르세요.</span></li>
+      <li><b>아이콘으로 실행 확인</b><span>홈 화면에 생긴 아이콘을 눌러 주소창 없이 전체화면으로 열리는지 확인하세요.</span></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>🤖 안드로이드 (Chrome)</h2>
+    <p class="platform-sub">아이폰보다 훨씬 간단해요. 크롬이 알아서 설치 버튼을 보여줘요.</p>
+    <ol class="steps">
+      <li><b>Chrome 앱으로 사이트 접속</b><span>파란색 동그라미 모양 Chrome 앱을 열고 사이트 주소를 입력하세요.</span></li>
+      <li><b>점 3개 메뉴 누르기</b><span>화면 오른쪽 위, 세로로 놓인 점 3개(⋮)를 누르세요.</span></li>
+      <li><b>'홈 화면에 추가' 또는 '앱 설치' 누르기</b><span>기종에 따라 문구가 조금 다를 수 있어요.</span></li>
+      <li><b>이름 확인하고 추가</b><span>'추가' 또는 '설치' 버튼을 누르면 홈 화면에 아이콘이 자동으로 생겨요.</span></li>
+      <li><b>아이콘으로 실행 확인</b><span>홈 화면 아이콘을 눌러 앱처럼 전체화면으로 열리는지 확인하세요.</span></li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2>알아두면 좋은 것</h2>
+    <p><span class="badge">회원가입 없음</span> 이 사이트는 로그인이나 회원가입 없이 작동해요. 브라우저(또는 설치된 앱)에 데이터가 저장되기 때문에, <b>같은 기기·같은 브라우저</b>로 접속했을 때만 기존 기록이 이어져요.</p>
+    <p><span class="badge">웹 = 앱</span> 홈 화면 아이콘은 새로운 앱이 아니라 지금 보시는 이 웹사이트를 여는 지름길이에요. 그래서 브라우저로 볼 때와 아이콘으로 열 때 기록이 자동으로 똑같이 보여요. 별도 동기화가 필요 없어요.</p>
+    <div class="note">아이폰은 iOS 특성상 Safari로 볼 때와 홈 화면 아이콘으로 열 때 저장 공간이 가끔 분리될 수 있어요. 설치 후 기존 기록이 안 보이면, 데이터를 다시 입력하시거나 Safari에서 직접 접속해서 확인해보세요.</div>
+  </div>
+
+  <div class="foot-nav">
+    <a href="/">홈</a>
+    <a href="/about.html">소개</a>
+    <a href="/privacy.html">개인정보처리방침</a>
+    <a href="/terms.html">이용약관</a>
+    <a href="/contact.html">문의</a>
+  </div>
+</div>
+</body>
+</html>
