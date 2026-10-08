@@ -97,12 +97,28 @@
   .info-item .a b{color:var(--ink);}
   button.opt{flex:1 1 auto;padding:10px 12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;font-size:13px;font-weight:600;color:var(--ink-soft);cursor:pointer;}
   button.opt.active{border-color:var(--forest);background:var(--forest-soft);color:var(--forest);}
+
+  .top-bar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .top-links{display:flex;gap:12px;font-size:12px;padding-top:6px;flex-shrink:0;}
+  .top-links a{color:var(--ink-soft);text-decoration:none;font-weight:600;}
+  .top-links a:hover{color:var(--forest);text-decoration:underline;}
+  .ad-slot{margin:14px 0;padding:6px 0;text-align:center;min-height:50px;}
+  .ad-label{font-size:10px;color:var(--ink-soft);text-align:left;margin-bottom:4px;letter-spacing:0.5px;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>오늘 뭐 먹지</h1>
+  <div class="top-bar">
+    <h1>오늘 뭐 먹지</h1>
+    <nav class="top-links"><a href="/about.html">소개</a><a href="/contact.html">문의</a></nav>
+  </div>
   <p class="sub">어제, 오늘, 내일 계획까지 — 남은 매크로 기반 추천</p>
+
+  <div class="ad-slot">
+    <div class="ad-label">광고</div>
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-2557338953436433" data-ad-slot="REPLACE_AD_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>try{(adsbygoogle = window.adsbygoogle || []).push({});}catch(e){}</script>
+  </div>
 
   <div class="tabs">
     <button id="tabDash" class="active" onclick="switchTab('dash')">투두</button>
@@ -259,12 +275,16 @@
     </div>
   </div>
 
+  <div class="ad-slot">
+    <div class="ad-label">광고</div>
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-2557338953436433" data-ad-slot="REPLACE_AD_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>try{(adsbygoogle = window.adsbygoogle || []).push({});}catch(e){}</script>
+  </div>
+
   <div style="display:flex;gap:14px;margin-top:24px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;flex-wrap:wrap;">
     <a href="/install.html" style="color:var(--forest);text-decoration:underline;font-weight:700;">📱 앱처럼 설치하기</a>
-    <a href="/about.html" style="color:var(--ink-soft);text-decoration:underline;">소개</a>
     <a href="/privacy.html" style="color:var(--ink-soft);text-decoration:underline;">개인정보처리방침</a>
     <a href="/terms.html" style="color:var(--ink-soft);text-decoration:underline;">이용약관</a>
-    <a href="/contact.html" style="color:var(--ink-soft);text-decoration:underline;">문의</a>
   </div>
 </div>
 
