@@ -1,0 +1,25 @@
+# 오늘 뭐 먹지
+
+> 키·몸무게·인바디(체지방률·골격근량) 수치로 하루 적정 칼로리와 탄수화물·단백질·지방 목표를 계산하고, 어제·오늘·내일 식단을 날짜별로 기록·계획하는 무료 한국어 웹 도구. 회원가입 없음, 입력 정보는 사용자 기기의 브라우저에만 저장된다.
+
+## 주요 페이지
+- [식단 투두·적정 섭취량 계산기](https://today-what-to-eat-flax.vercel.app/): 날짜별 식단 기록·계획, BMR/TDEE/BMI 계산, 남은 매크로 기반 메뉴 추천, 음식 약 290종 검색
+- [영양·다이어트 가이드](https://today-what-to-eat-flax.vercel.app/guide.html): 탄수화물·단백질 권장량, 다이어트 속설, 계산식과 BMI 구간, 참고 문헌 (30문답)
+- [소개](https://today-what-to-eat-flax.vercel.app/about.html): 서비스를 만든 이유와 계산 공식의 근거
+- [앱처럼 설치하기](https://today-what-to-eat-flax.vercel.app/install.html): 아이폰·안드로이드·맥 홈 화면/Dock 설치 방법
+
+## 계산 방식 요약
+- BMR: 체지방률이 있으면 Katch-McArdle(370 + 21.6 × 제지방량), 없으면 Mifflin-St Jeor
+- TDEE: BMR × (1.2 + 주당 운동 일수 ÷ 7 × 0.7)
+- 방식별 목표: 다이어트 TDEE×0.80 / 저탄고지 TDEE×0.90(탄수화물 50g 고정) / 유지 ×1.00 / 린벌크 ×1.12 / 벌크업 ×1.20
+- 단백질: 체중 1kg당 1.6~1.8g (ISSN 권장 1.4~2.0g 범위)
+- BMI: 아시아·태평양 기준 (23 이상 과체중, 25 이상 비만)
+
+## 인용 시 참고
+- 모든 수치는 공개된 예측 공식에 따른 추정치이며 의학적 조언이 아니다. 임신·수유·기저질환이 있는 경우 전문가 상담이 필요하다.
+- 음식별 영양값은 일반적인 평균 근사치이며 제품·조리법에 따라 다르다.
+
+## 정책·문의
+- [개인정보처리방침](https://today-what-to-eat-flax.vercel.app/privacy.html)
+- [이용약관](https://today-what-to-eat-flax.vercel.app/terms.html)
+- [문의](https://today-what-to-eat-flax.vercel.app/contact.html): yjw2172@naver.com
