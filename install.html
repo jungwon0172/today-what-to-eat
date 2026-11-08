@@ -47,8 +47,11 @@
   .top-links{display:flex;gap:12px;font-size:12px;padding-top:6px;flex-shrink:0;}
   .top-links a{color:var(--ink-soft);text-decoration:none;font-weight:600;}
   .top-links a:hover{color:var(--forest);text-decoration:underline;}
-  .ad-slot{margin:14px 0;padding:6px 0;text-align:center;min-height:50px;}
-  .ad-label{font-size:10px;color:var(--ink-soft);text-align:left;margin-bottom:4px;letter-spacing:0.5px;}
+  .ad-slot{margin:0;text-align:center;}
+  .ad-slot:has(ins[data-ad-status="filled"]){margin:14px 0;padding:6px 0;}
+  .ad-slot:has(ins[data-ad-status="unfilled"]){display:none;}
+  .ad-slot .ad-label{display:none;font-size:10px;color:var(--ink-soft);text-align:left;margin-bottom:4px;letter-spacing:0.5px;}
+  .ad-slot:has(ins[data-ad-status="filled"]) .ad-label{display:block;}
 </style>
 </head>
 <body>
@@ -108,7 +111,7 @@
   <div class="ad-slot">
     <div class="ad-label">광고</div>
     <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-2557338953436433" data-ad-slot="REPLACE_AD_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins>
-    <script>try{(adsbygoogle = window.adsbygoogle || []).push({});}catch(e){}</script>
+    <script>(function(){var i=document.currentScript.previousElementSibling;if(i&&/^\d+$/.test(i.getAttribute('data-ad-slot')||'')){try{(window.adsbygoogle=window.adsbygoogle||[]).push({});}catch(e){}}})();</script>
   </div>
 
   <div class="foot-nav">
