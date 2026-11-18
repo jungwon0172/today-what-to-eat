@@ -1,8 +1,8 @@
-const CACHE_NAME = "todaywhattoeat-cache-v2";
+const CACHE_NAME = "todaywhattoeat-cache-v3";
 const CORE_ASSETS = [
   "/", "/index.html", "/guide.html", "/about.html", "/install.html",
   "/privacy.html", "/terms.html", "/contact.html",
-  "/icon-192.png", "/icon-512.png"
+  "/icon-192.png", "/icon-512.png", "/og-image.png"
 ];
 
 self.addEventListener("install", (event) => {
